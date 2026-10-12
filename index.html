@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ຈັດການສະຕັອກສິນຄ້າ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --text:#1a1d23; --sub:#6b7280; --line:#e5e7eb;
+  --accent:#2563eb; --accent2:#16a34a; --danger:#dc2626; --warn:#f59e0b;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#111318;--card:#1a1d23;--text:#eef0f3;--sub:#9aa1ac;--line:#2a2e37;}
+}
+:root[data-theme="dark"]{--bg:#111318;--card:#1a1d23;--text:#eef0f3;--sub:#9aa1ac;--line:#2a2e37;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;}
+body{padding:12px;padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));}
+h1{font-size:1.2rem;margin:4px 0 12px;}
+.viewtabs{display:flex;gap:6px;margin-bottom:10px;}
+.vtab{flex:1;text-align:center;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:0.85rem;font-weight:600;}
+.vtab.active{background:var(--text);color:var(--bg);}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;}
+.tab{flex:0 0 auto;padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:0.85rem;white-space:nowrap;}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;}
+.row{display:flex;flex-wrap:wrap;gap:8px;}
+.row > *{flex:1 1 140px;min-width:0;}
+input,select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:0.9rem;}
+label{font-size:0.75rem;color:var(--sub);display:block;margin-bottom:3px;}
+button{padding:9px 14px;border-radius:8px;border:none;font-size:0.85rem;cursor:pointer;font-weight:600;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-green{background:var(--accent2);color:#fff;}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--line);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-warn{background:var(--warn);color:#fff;}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+table{border-collapse:collapse;width:100%;min-width:780px;font-size:0.82rem;}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;}
+th{background:var(--bg);color:var(--sub);font-weight:600;position:sticky;top:0;}
+tr.low td{color:var(--danger);}
+tr.soon td{color:var(--warn);}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.7rem;background:var(--bg);border:1px solid var(--line);}
+.actions button{padding:5px 7px;font-size:0.72rem;margin-right:3px;}
+.hint{font-size:0.75rem;color:var(--sub);margin-top:4px;}
+.empty{text-align:center;padding:30px;color:var(--sub);}
+.hidden{display:none !important;}
+#status{font-size:0.75rem;color:var(--sub);margin-top:6px;min-height:16px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;flex:1 1 140px;}
+.stat .num{font-size:1.4rem;font-weight:700;}
+.stat .lbl{font-size:0.75rem;color:var(--sub);}
+.check{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--sub);flex:0 0 auto !important;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;}
+.modal{background:var(--card);border-radius:12px;padding:16px;width:100%;max-width:320px;}@media print{
+  body *{ visibility:hidden; }
+  #print-area, #print-area *{ visibility:visible; }
+  #print-area{ position:absolute; left:0; top:0; width:100%; }
+  button, input, select, .viewtabs, .tabs{ display:none !important; }
+}
+.role-staff .owner-only, .role-staff .cost-only{display:none !important;}
+</style>
+</head>
+<body>
+
+<!-- ============ GATE: Setup Supabase + Login (shown before the app) ============ -->
+<div id="gate" style="max-width:480px;margin:40px auto;">
+  <h1 style="text-align:center;">📦 ຈັດການສະຕັອກສິນຄ້າ</h1>
+
+  <div id="gate-setup" class="card">
+    <h3 style="margin-top:0;">⚙️ ຕັ້ງຄ່າເຊື່ອມຕໍ່ຄລາວ (Supabase) — ເຮັດຄັ້ງດຽວ</h3>
+    <p class="hint">ຕ້ອງການ Project URL ແລະ anon public key ຈາກ Supabase ຂອງທ່ານ (ເບິ່ງວິທີຕັ້ງຄ່າລຸ່ມສຸດ)</p>
+    <label>Supabase Project URL</label>
+    <input id="sb_url" placeholder="https://xxxxxxxx.supabase.co" style="margin-bottom:8px;">
+    <label>Supabase anon public key</label>
+    <input id="sb_key" placeholder="eyJhbGciOi..." style="margin-bottom:12px;">
+    <button class="btn-primary" id="btn_sb_connect" style="width:100%;">ເຊື່ອມຕໍ່</button>
+    <p class="hint" id="sb_setup_err" style="color:var(--danger);"></p>
+    <details style="margin-top:14px;">
+      <summary style="cursor:pointer;">📜 ວິທີຕັ້ງຄ່າ Supabase (ເຮັດຄັ້ງດຽວ, ຟຣີ)</summary>
+      <ol style="font-size:0.82rem;line-height:1.6;padding-left:20px;">
+        <li>ໄປ <b>supabase.com</b> → ສະໝັກບັນຊີຟຣີ → "New Project"</li>
+        <li>ຕັ້ງຊື່ project ແລະລະຫັດຜ່ານຖານຂໍ້ມູນ (ຈື່ໄວ້), ລໍຖ້າ ~2 ນາທີໃຫ້ສ້າງສຳເລັດ</li>
+        <li>ໄປ <b>Project Settings → API</b> → copy "Project URL" ແລະ "anon public" key ມາໃສ່ຊ່ອງເທິງນີ້</li>
+        <li>ໄປ <b>SQL Editor</b> → ວາງໂຄ້ດນີ້ → ກົດ Run (ຄັ້ງດຽວ):
+          <pre id="sb_sql" style="background:#1a1d23;color:#eef0f3;padding:10px;border-radius:8px;overflow-x:auto;font-size:0.68rem;white-space:pre;">create table stock_items (
+  id text not null, user_id uuid not null references auth.users(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
+  updated_at bigint not null default 0, primary key (user_id, id));
+create table stock_history (
+  id text not null, user_id uuid not null references auth.users(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
+  updated_at bigint not null default 0, primary key (user_id, id));
+create table stock_biz_types (
+  id text not null, user_id uuid not null references auth.users(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
+  updated_at bigint not null default 0, primary key (user_id, id));
+create table stock_rate_history (
+  id text not null, user_id uuid not null references auth.users(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
+  updated_at bigint not null default 0, primary key (user_id, id));
+create table stock_settings (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  rates jsonb not null default '{}'::jsonb, updated_at bigint not null default 0);
+
+alter table stock_items enable row level security;
+alter table stock_history enable row level security;
+alter table stock_biz_types enable row level security;
+alter table stock_rate_history enable row level security;
+alter table stock_settings enable row level security;
+
+create policy "own rows" on stock_items for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own rows" on stock_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own rows" on stock_biz_types for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own rows" on stock_rate_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own rows" on stock_settings for all using (auth.uid()=user_id) with check (auth.uid()=user_id);</pre>
+        </li>
+        <li>(ທາງເລືອກ — ຖ້າຕ້ອງການບັນຊີພະນັກງານ) run SQL ນີ້ເພີ່ມ ອີກຄັ້ງດຽວ ຫຼັງຈາກ SQL ຂ້າງເທິງ:
+          <pre id="sb_sql_staff" style="background:#1a1d23;color:#eef0f3;padding:10px;border-radius:8px;overflow-x:auto;font-size:0.68rem;white-space:pre;">create table stock_members (
+  member_id uuid primary key references auth.users(id) on delete cascade,
+  shop_id uuid not null references auth.users(id) on delete cascade,
+  email text not null);
+create table stock_invites (
+  shop_id uuid not null references auth.users(id) on delete cascade,
+  email text not null, primary key (shop_id, email));
+alter table stock_members enable row level security;
+alter table stock_invites enable row level security;
+
+create or replace function stock_can_access(p_shop uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select auth.uid() = p_shop or exists (
+    select 1 from stock_members where member_id = auth.uid() and shop_id = p_shop) $$;
+
+drop policy if exists "own rows" on stock_items;
+drop policy if exists "own rows" on stock_history;
+drop policy if exists "own rows" on stock_biz_types;
+drop policy if exists "own rows" on stock_rate_history;
+drop policy if exists "own rows" on stock_settings;
+create policy "shop rows" on stock_items for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
+create policy "shop rows" on stock_history for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
+create policy "shop rows" on stock_biz_types for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
+create policy "shop rows" on stock_rate_history for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
+create policy "shop rows" on stock_settings for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
+
+create policy "see members" on stock_members for select using (member_id = auth.uid() or shop_id = auth.uid());
+create policy "owner removes members" on stock_members for delete using (shop_id = auth.uid());
+create policy "owner manages invites" on stock_invites for all using (shop_id = auth.uid()) with check (shop_id = auth.uid());
+
+create or replace function stock_my_shop() returns uuid
+language plpgsql security definer set search_path = public as $$
+declare v_shop uuid; v_email text := lower(auth.jwt() ->> 'email');
+begin
+  select shop_id into v_shop from stock_members where member_id = auth.uid();
+  if v_shop is not null then return v_shop; end if;
+  select shop_id into v_shop from stock_invites where lower(email) = v_email limit 1;
+  if v_shop is null then return null; end if;
+  insert into stock_members (member_id, shop_id, email) values (auth.uid(), v_shop, v_email);
+  delete from stock_invites where lower(email) = v_email;
+  return v_shop;
+end $$;</pre>
+        </li>
+        <li>ກັບມາໜ້ານີ້ ວາງ URL+key ແລ້ວກົດ "ເຊື່ອມຕໍ່"</li>
+      </ol>
+    </details>
+  </div>
+
+  <div id="gate-login" class="card hidden">
+    <h3 style="margin-top:0;" id="auth-title">🔑 ເຂົ້າສູ່ລະບົບ</h3>
+    <label>ອີເມວ</label>
+    <input id="auth_email" type="email" style="margin-bottom:8px;">
+    <label>ລະຫັດຜ່ານ</label>
+    <input id="auth_password" type="password" style="margin-bottom:12px;">
+    <button class="btn-primary" id="btn_signin" style="width:100%;margin-bottom:6px;">ເຂົ້າສູ່ລະບົບ</button>
+    <button class="btn-ghost" id="btn_signup" style="width:100%;">ສະໝັກບັນຊີໃໝ່ (ຮ້ານໃໝ່)</button>
+    <p class="hint" id="auth_err" style="color:var(--danger);"></p>
+    <p class="hint" id="auth_msg" style="color:var(--accent2);"></p>
+    <p style="text-align:center;margin:10px 0 0;"><a href="#" id="link_forgot" style="font-size:0.8rem;color:var(--accent);">ລືມລະຫັດຜ່ານ?</a></p>
+    <button class="btn-ghost" id="btn_sb_reset" style="width:100%;margin-top:14px;font-size:0.75rem;">⚙️ ປ່ຽນການຕັ້ງຄ່າ Supabase</button>
+  </div>
+
+  <div id="gate-forgot" class="card hidden">
+    <h3 style="margin-top:0;">🔑 ກູ້ລະຫັດຜ່ານ</h3>
+    <p class="hint">ໃສ່ອີເມວທີ່ສະໝັກໄວ້ — ລະບົບຈະສົ່ງລິ້ງກູ້ລະຫັດຜ່ານໄປໃຫ້ (ໄປຕັ້ງລະຫັດຜ່ານໃໝ່ຈາກລິ້ງນັ້ນ)</p>
+    <label>ອີເມວ</label>
+    <input id="forgot_email" type="email" style="margin-bottom:12px;">
+    <button class="btn-primary" id="btn_forgot_send" style="width:100%;margin-bottom:6px;">ສົ່ງລິ້ງກູ້ລະຫັດຜ່ານ</button>
+    <button class="btn-ghost" id="btn_forgot_back" style="width:100%;">⬅ ກັບໄປໜ້າເຂົ້າສູ່ລະບົບ</button>
+    <p class="hint" id="forgot_err" style="color:var(--danger);"></p>
+    <p class="hint" id="forgot_msg" style="color:var(--accent2);"></p>
+    <p class="hint" style="margin-top:10px;">⚠️ ໃຊ້ໄດ້ດີຖ້າເປີດຜ່ານລິ້ງເວັບ (https://...). ຖ້າເປີດຈາກໄຟລ໌ໃນຄອມໂດຍກົງ ລິ້ງກູ້ລະຫັດອາດບໍ່ເຮັດວຽກ (Supabase ບໍ່ຍອມຮັບລິ້ງແບບ file://) — ກໍລະນີນີ້ໃຫ້ເຈົ້າຂອງບັນຊີ Supabase ໄປຕັ້ງລະຫັດຜ່ານໃໝ່ໃຫ້ຜ່ານ Dashboard → Authentication → Users ແທນ</p>
+  </div>
+
+  <div id="gate-reset" class="card hidden">
+    <h3 style="margin-top:0;">🔑 ຕັ້ງລະຫັດຜ່ານໃໝ່</h3>
+    <label>ລະຫັດຜ່ານໃໝ່ (ຢ່າງໜ້ອຍ 6 ໂຕ)</label>
+    <input id="reset_password" type="password" style="margin-bottom:8px;">
+    <label>ພິມຢືນຢັນອີກຄັ້ງ</label>
+    <input id="reset_password2" type="password" style="margin-bottom:12px;">
+    <button class="btn-primary" id="btn_reset_save" style="width:100%;">ບັນທຶກລະຫັດຜ່ານໃໝ່</button>
+    <p class="hint" id="reset_err" style="color:var(--danger);"></p>
+  </div>
+</div>
+<!-- ============ END GATE ============ -->
+
+<div id="app-root" class="hidden">
+<div class="toolbar" style="justify-content:flex-end;max-width:1100px;margin:0 auto 6px;">
+  <span class="hint" id="auth-userlabel"></span>
+  <span class="hint" id="sync-status"></span>
+  <button class="btn-ghost" id="btn_signout">ອອກຈາກລະບົບ</button>
+</div>
+<h1>📦 ຈັດການສະຕັອກສິນຄ້າ</h1>
+<div class="card owner-only" style="margin-bottom:10px;">
+  <div class="toolbar" style="margin-bottom:0;flex-wrap:wrap;">
+    <button class="btn-primary" id="btn_choose_folder">📁 ເລືອກໂຟນເດີບັນທຶກ</button>
+    <button class="btn-ghost hidden" id="btn_reconnect_folder">🔗 ເຊື່ອມຕໍ່ໂຟນເດີເກົ່າ</button>
+    <span class="hint" id="folder-status" style="flex:1 1 220px;"></span>
+  </div>
+  <p class="hint" style="margin:6px 0 0;">ຕ້ອງໃຊ້ Chrome ຫຼື Edge ຢູ່ຄອມ. ບາງ browser ຈະຖາມອະນຸຍາດໂຟນເດີໃໝ່ທຸກຄັ້ງທີ່ເປີດໄຟລ໌ນີ້ — ເປັນເລື່ອງປົກກະຕິ, ກົດອະນຸຍາດໄດ້ເລີຍ.</p>
+</div>
+<div class="card hidden owner-only" id="export-reminder" style="background:#FEF0C7;border-color:#F5B13C;">
+  ⚠️ ບໍ່ໄດ້ກົດ Export Excel ມາດົນແລ້ວ (ຫຼືຍັງບໍ່ເຄີຍເລີຍ) — ຂໍ້ມູນຍັງຢູ່ໃນ browser ນີ້ຢ່າງດຽວ, ແນະນຳໃຫ້ກົດ "Export Excel" ເກັບໄວ້ເປັນສຳເນົາ
+</div>
+<div class="card owner-only" id="staff-card" style="margin-bottom:10px;">
+  <details>
+    <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;">👥 ພະນັກງານ (ເຊີນ/ລົບ)</summary>
+    <div style="margin-top:10px;">
+      <p class="hint" style="margin:0 0 8px;">ໃສ່ອີເມວພະນັກງານ ແລ້ວກົດເຊີນ — ພະນັກງານສະໝັກບັນຊີດ້ວຍອີເມວນັ້ນ ແລ້ວຈະເຂົ້າຮ້ານນີ້ອັດຕະໂນມັດ. ພະນັກງານຂາຍ/ຮັບເຂົ້າໄດ້ ແຕ່ບໍ່ເຫັນຕົ້ນທຶນ/ກຳໄລ/ລາຍງານ ແລະລົບ/ແກ້ໄຂບໍ່ໄດ້ (ເປັນການເຊື່ອງໃນໜ້າຈໍເທົ່ານັ້ນ).</p>
+      <div class="row">
+        <div><label>ອີເມວພະນັກງານ</label><input id="staff_email" type="email" placeholder="staff@example.com"></div>
+        <div style="display:flex;align-items:flex-end;"><button class="btn-primary" id="btn_invite" style="width:100%;">➕ ເຊີນ</button></div>
+      </div>
+      <p class="hint" id="staff_msg" style="margin:8px 0;"></p>
+      <div id="staff_list"></div>
+    </div>
+  </details>
+</div>
+<div class="viewtabs">
+  <div class="vtab active" data-v="products">📋 ສິນຄ້າ</div>
+  <div class="vtab" data-v="history">🔄 ປະຫວັດ</div>
+  <div class="vtab owner-only" data-v="reports">📊 ລາຍງານ</div>
+</div>
+
+<!-- PRODUCTS VIEW -->
+<div id="view-products">
+<div class="tabs" id="tabs"></div>
+
+<div class="card owner-only">
+  <details>
+    <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;">⚙️ ຈັດການປະເພດທຸລະກິດ (ເພີ່ມ/ລົບ)</summary>
+    <div id="biz-list" style="margin-top:10px;"></div>
+    <div class="row" style="margin-top:10px;">
+      <div style="flex:0 0 70px;"><label>ໄອຄອນ</label><input id="newbiz_icon" placeholder="🛠️" maxlength="4"></div>
+      <div><label>ຊື່ທຸລະກິດ</label><input id="newbiz_label" placeholder="ເຊັ່ນ: ຮ້ານຂາຍເຄື່ອງ"></div>
+      <div style="display:flex;align-items:flex-end;"><button class="btn-primary" id="btn_addbiz" style="width:100%;">➕ ເພີ່ມທຸລະກິດ</button></div>
+    </div>
+  </details>
+</div>
+
+<div class="card owner-only">
+  <div class="toolbar" style="margin-bottom:0;justify-content:space-between;">
+    <strong style="font-size:0.9rem;">💱 ອັດຕາແລກປ່ຽນ (ຕໍ່ 1 ໜ່ວຍ = ຈັກກີບ)</strong>
+    <span class="hint" id="rate-date-lbl">ຍັງບໍ່ໄດ້ຕັ້ງ</span>
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <div><label>1 ບາດ (THB) =</label><input id="rate_thb" type="text" inputmode="decimal" data-thousands placeholder="ຈັກກີບ"></div>
+    <div><label>1 ຢວນ (CNY) =</label><input id="rate_cny" type="text" inputmode="decimal" data-thousands placeholder="ຈັກກີບ"></div>
+    <div><label>1 ໂດລາ (USD) =</label><input id="rate_usd" type="text" inputmode="decimal" data-thousands placeholder="ຈັກກີບ"></div>
+    <div style="display:flex;align-items:flex-end;"><button class="btn-primary" id="btn_saverate" style="width:100%;">ບັນທຶກອັດຕາ</button></div>
+  </div>
+  <details style="margin-top:10px;">
+    <summary class="hint" style="cursor:pointer;">📜 ເບິ່ງປະຫວັດການປ່ຽນອັດຕາແລກປ່ຽນ</summary>
+    <div class="tablewrap" style="margin-top:8px;">
+      <table><thead><tr><th>ວັນທີ</th><th>ບາດ</th><th>ຢວນ</th><th>ໂດລາ</th><th>ຈັດການ</th></tr></thead><tbody id="tbody-ratehistory"></tbody></table>
+    </div>
+  </details>
+</div>
+
+<div class="card owner-only">
+  <details id="additem-details" open>
+    <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;">➕ ເພີ່ມສິນຄ້າ (ກົດເພື່ອເປີດ/ປິດ)</summary>
+    <div style="margin-top:10px;">
+  <div class="row">
+    <div><label>ປະເພດທຸລະກິດ</label><select id="f_biz"></select></div>
+    <div><label>ລະຫັດສິນຄ້າ</label><input id="f_code" placeholder="ອັດຕະໂນມັດຖ້າວ່າງ"></div>
+    <div><label>ຊື່ສິນຄ້າ *</label><input id="f_name" placeholder="ຊື່ສິນຄ້າ"></div>
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <div><label>ໝວດໝູ່</label><input id="f_cat" placeholder="ເຊັ່ນ: ນ້ຳດື່ມ, ປູນ, ອະໄຫຼ່"></div>
+    <div><label>ໜ່ວຍນັບ</label><input id="f_unit" placeholder="ແກັດ/ຖົງ/ອັນ"></div>
+    <div><label>ຈຳນວນຄົງເຫຼືອ</label><input id="f_qty" type="text" inputmode="decimal" data-thousands value="0"></div>
+    <div><label>ຈຸດສັ່ງຊື້ຂັ້ນຕ່ຳ</label><input id="f_min" type="text" inputmode="decimal" data-thousands value="0"></div>
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <div><label>ສະກຸນເງິນຕົ້ນທຶນ (ຊື້)</label><select id="f_currency"></select></div>
+    <div><label>ລາຄາຕົ້ນທຶນ</label><input id="f_cost" type="text" inputmode="decimal" data-thousands value="0"></div>
+    <div><label>ສະກຸນເງິນຂາຍ</label><select id="f_currency_price"></select></div>
+    <div><label>ລາຄາຂາຍ</label><input id="f_price" type="text" inputmode="decimal" data-thousands value="0"></div>
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <div><label>ຜູ້ສະໜອງ</label><input id="f_supplier" placeholder="ຊື່ຜູ້ສະໜອງ"></div>
+    <div><label>ວັນໝົດອາຍຸ</label><input id="f_expiry" type="date"></div>
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <div><label>ຮ້ານ/ແຜງ (ສະເພາະຕະຫລາດ)</label><input id="f_stall" placeholder="ເຊັ່ນ: ແຜງ A12"></div>
+    <div><label>ຮຸ່ນລົດທີ່ໃຊ້ໄດ້ (ສະເພາະຊ້າງລົດ)</label><input id="f_carmodel" placeholder="ເຊັ່ນ: Toyota Hilux, Vios"></div>
+  </div>
+  <p class="hint" style="margin-top:6px;">💡 ຖ້າຊື້ເປັນສະກຸນໜຶ່ງ ແຕ່ຂາຍເປັນອີກສະກຸນໜຶ່ງ (ເຊັ່ນ ຊື້ອະໄຫຼ່ເປັນຢວນ ແຕ່ຂາຍລູກຄ້າເປັນກີບ), ເລືອກສະກຸນເງິນແຍກກັນໄດ້ — ລະບົບຈະແປງເປັນກີບ ແລະຄິດກຳໄລໃຫ້ອັດຕະໂນມັດ.</p>
+  <div class="toolbar" style="margin-top:10px;">
+    <button class="btn-primary" id="btn_save">➕ ບັນທຶກສິນຄ້າ</button>
+    <button class="btn-ghost" id="btn_clear">ລ້າງຟອມ</button>
+  </div>
+    </div>
+  </details>
+</div>
+
+<div class="toolbar">
+  <input id="search" placeholder="🔍 ຄົ້ນຫາຊື່/ລະຫັດ/ໝວດໝູ່/ຜູ້ສະໜອງ/ຮ້ານ/ຮຸ່ນລົດ" style="flex:2 1 200px;">
+  <select id="sortsel" style="flex:1 1 140px;">
+    <option value="name">ຮຽງ: ຊື່</option>
+    <option value="qty_asc">ຮຽງ: ຄົງເຫຼືອ ນ້ອຍ→ຫຼາຍ</option>
+    <option value="qty_desc">ຮຽງ: ຄົງເຫຼືອ ຫຼາຍ→ນ້ອຍ</option>
+    <option value="expiry">ຮຽງ: ໝົດອາຍຸໄວສຸດ</option>
+  </select>
+  <label class="check"><input type="checkbox" id="lowonly"> ສະເພາະໃກ້ໝົດ</label>
+  <label class="check"><input type="checkbox" id="soononly"> ໃກ້ໝົດອາຍຸ (30ວັນ)</label>
+</div>
+<div class="toolbar owner-only">
+  <button class="btn-green" id="btn_export">⬇️ Export Excel</button>
+  <button class="btn-ghost" id="btn_import">📥 Import Excel</button>
+  <input type="file" id="file_import" accept=".xlsx,.xls,.csv" style="display:none;">
+</div>
+<div class="toolbar hidden owner-only" id="bulkbar">
+  <span class="hint" id="bulkcount" style="font-weight:600;"></span>
+  <button class="btn-danger" id="btn_bulkdelete">🗑️ ລົບລາຍການທີ່ເລືອກ</button>
+  <button class="btn-ghost" id="btn_bulkcancel">ຍົກເລີກການເລືອກ</button>
+</div>
+
+<div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th class="owner-only"><input type="checkbox" id="checkall"></th>
+      <th>ລະຫັດ</th><th>ຊື່ສິນຄ້າ</th><th>ທຸລະກິດ</th><th>ໝວດໝູ່</th><th>ໜ່ວຍ</th>
+      <th>ຄົງເຫຼືອ</th><th>ຂັ້ນຕ່ຳ</th><th class="cost-only">ຕົ້ນທຶນ</th><th>ຂາຍ</th><th class="cost-only">ມູນຄ່າ(₭)</th><th>ໝົດອາຍຸ</th><th>ຜູ້ສະໜອງ</th><th>ຮ້ານ/ແຜງ</th><th>ຮຸ່ນລົດ</th><th>ຈັດການ</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="empty hidden" id="empty">ຍັງບໍ່ມີສິນຄ້າ — ເພີ່ມສິນຄ້າ ຫຼື Import ຈາກ Excel</div>
+</div>
+
+<!-- HISTORY VIEW -->
+<div id="view-history" class="hidden">
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>ວັນທີ</th><th>ສິນຄ້າ</th><th>ປະເພດ</th><th>ຈຳນວນ</th><th>ລາຄາຂາຍ/ໜ່ວຍ</th><th class="cost-only">ຕົ້ນທຶນ/ໜ່ວຍ</th><th>ຍອດລວມ</th><th class="cost-only">ກຳໄລ</th><th>ໝາຍເຫດ</th><th>ຜູ້ບັນທຶກ</th><th class="owner-only">ຈັດການ</th></tr></thead>
+    <tbody id="tbody-history"></tbody>
+  </table>
+</div>
+<div class="empty hidden" id="empty-history">ຍັງບໍ່ມີປະຫວັດການເຄື່ອນໄຫວ</div>
+</div>
+
+<!-- REPORTS VIEW -->
+<div id="view-reports" class="hidden">
+<div class="toolbar" style="justify-content:space-between;flex-wrap:wrap;">
+  <div class="toolbar" style="margin-bottom:0;">
+    <label class="hint" style="margin:0;">ເບິ່ງລາຍງານສະເພາະທຸລະກິດ:</label>
+    <select id="rep_biz_filter"><option value="all">ທັງໝົດ</option></select>
+  </div>
+  <button class="btn-primary" id="btn_print">🖨️ ພິມ / ບັນທຶກເປັນ PDF</button>
+</div>
+<div id="print-area">
+<h3 id="rep-title" style="font-size:0.95rem;margin-top:0;">📦 ສະຕັອກປັດຈຸບັນ</h3>
+<div class="row" style="margin-bottom:14px;">
+  <div class="stat"><div class="num" id="rep-total-value">0</div><div class="lbl">ມູນຄ່າສະຕັອກລວມ ₭ (ຕົ້ນທຶນ)</div></div>
+  <div class="stat"><div class="num" id="rep-total-items">0</div><div class="lbl">ຈຳນວນລາຍການສິນຄ້າ</div></div>
+  <div class="stat"><div class="num" id="rep-low-count">0</div><div class="lbl">ລາຍການໃກ້ໝົດ</div></div>
+  <div class="stat"><div class="num" id="rep-soon-count">0</div><div class="lbl">ໃກ້ໝົດອາຍຸ (30ວັນ)</div></div>
+</div>
+<h3 style="font-size:0.95rem;">💰 ລາຍງານການຂາຍ (ຈາກປະຫວັດຈ່າຍອອກທັງໝົດ)</h3>
+<div class="row" style="margin-bottom:10px;">
+  <div class="stat"><div class="num" id="rep-sales-count">0</div><div class="lbl">ຈຳນວນຄັ້ງທີ່ຂາຍ</div></div>
+  <div class="stat"><div class="num" id="rep-revenue">0</div><div class="lbl">ຍອດຂາຍລວມ ₭</div></div>
+  <div class="stat"><div class="num" id="rep-profit" style="color:var(--accent2);">0</div><div class="lbl">ກຳໄລລວມ ₭ (ຂາຍ-ຕົ້ນທຶນ)</div></div>
+</div>
+<div id="sec-salesbybiz">
+<h4 style="font-size:0.85rem;color:var(--sub);margin:0 0 6px;">ແຍກຕາມແຕ່ລະທຸລະກິດ</h4>
+<div class="tablewrap" style="margin-bottom:14px;">
+  <table><thead><tr><th>ທຸລະກິດ</th><th>ຈຳນວນຂາຍ</th><th>ຍອດຂາຍ ₭</th><th>ກຳໄລ ₭</th></tr></thead><tbody id="tbody-salesreport"></tbody></table>
+</div>
+</div>
+<div id="sec-bizvalue">
+<h3 style="font-size:0.95rem;">ມູນຄ່າສະຕັອກຕາມທຸລະກິດ</h3>
+<div class="tablewrap" style="margin-bottom:14px;">
+  <table><thead><tr><th>ທຸລະກິດ</th><th>ຈຳນວນລາຍການ</th><th>ມູນຄ່າຕົ້ນທຶນ ₭</th></tr></thead><tbody id="tbody-bizreport"></tbody></table>
+</div>
+</div>
+<h3 style="font-size:0.95rem;">⚠️ ສິນຄ້າໃກ້ໝົດ</h3>
+<div class="tablewrap" style="margin-bottom:14px;">
+  <table><thead><tr><th>ຊື່ສິນຄ້າ</th><th>ທຸລະກິດ</th><th>ຄົງເຫຼືອ</th><th>ຂັ້ນຕ່ຳ</th></tr></thead><tbody id="tbody-lowreport"></tbody></table>
+</div>
+<h3 style="font-size:0.95rem;">⏳ ໃກ້ໝົດອາຍຸ</h3>
+<div class="tablewrap">
+  <table><thead><tr><th>ຊື່ສິນຄ້າ</th><th>ທຸລະກິດ</th><th>ວັນໝົດອາຍຸ</th><th>ຄົງເຫຼືອ</th></tr></thead><tbody id="tbody-expreport"></tbody></table>
+</div>
+<div id="sec-stall">
+<h3 style="font-size:0.95rem;">🏪 ມູນຄ່າຕາມຮ້ານ/ແຜງ</h3>
+<div class="tablewrap">
+  <table><thead><tr><th>ຮ້ານ/ແຜງ</th><th>ຈຳນວນລາຍການ</th><th>ມູນຄ່າຕົ້ນທຶນ ₭</th><th>ຍອດຂາຍ/ລາຍຮັບ ₭</th><th>ກຳໄລ ₭</th></tr></thead><tbody id="tbody-stallreport"></tbody></table>
+</div>
+</div>
+
+</div>
+</div>
+
+<div id="status"></div>
+
+<script>
+let BIZ = [
+  {id:'water', label:'💧 ຂາຍນ້ຳ', updatedAt:1},
+  {id:'market', label:'🏪 ຕະຫລາດ', updatedAt:1},
+  {id:'garage', label:'🚗 ຊ້າງລົດ', updatedAt:1},
+  {id:'construction', label:'🧱 ວັດສະດຸກໍ່ສ້າງ', updatedAt:1},
+];
+const BIZ_DEFAULT = JSON.parse(JSON.stringify(BIZ));
+const CURRENCIES = ['LAK','THB','CNY','USD'];
+const CUR_SYMBOL = {LAK:'₭', THB:'฿', CNY:'¥', USD:'$'};
+let items = [];
+let history = [];
+let rates = {THB:0, CNY:0, USD:0, date:''};
+let rateHistory = [];
+let currentTab = 'all';
+let editId = null;
+
+
+function toLAK(amount, currency){
+  if(!currency || currency==='LAK') return Number(amount)||0;
+  const r = Number(rates[currency])||0;
+  return (Number(amount)||0) * r;
+}
+
+const tabsEl = document.getElementById('tabs');
+function renderTabs(){
+  const all = [{id:'all',label:'ທັງໝົດ'}, ...BIZ];
+  tabsEl.innerHTML = all.map(b=>`<div class="tab ${b.id===currentTab?'active':''}" data-id="${b.id}">${b.label}</div>`).join('');
+  [...tabsEl.children].forEach(el=>el.onclick=()=>{currentTab=el.dataset.id;renderTabs();renderTable();});
+}
+
+function slugify(label){
+  let base = label.replace(/[^\p{L}\p{N}]+/gu,'-').toLowerCase().replace(/^-+|-+$/g,'') || 'biz';
+  let id = base, n = 1;
+  while(BIZ.some(b=>b.id===id)) id = base+'-'+(n++);
+  return id;
+}
+
+function renderBizList(){
+  const el = document.getElementById('biz-list');
+  el.innerHTML = BIZ.map(b=>{
+    const count = items.filter(it=>it.biz===b.id).length;
+    return `<div class="toolbar" style="margin-bottom:6px;justify-content:space-between;">
+      <span>${b.label} <span class="hint">(${count} ລາຍການ)</span></span>
+      <span>
+        <button class="btn-ghost" data-editid="${b.id}">✏️ ແກ້ໄຂ</button>
+        <button class="btn-danger" data-bizid="${b.id}" data-bizlabel="${b.label.replace(/"/g,'')}" data-bizcount="${count}">🗑️ ລົບ</button>
+      </span>
+    </div>`;
+  }).join('') || '<p class="hint">ຍັງບໍ່ມີປະເພດທຸລະກິດ</p>';
+  el.querySelectorAll('button[data-bizid]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.bizid, label = btn.dataset.bizlabel, count = Number(btn.dataset.bizcount);
+      const warn = count>0 ? ` ມີສິນຄ້າ ${count} ລາຍການໃນປະເພດນີ້ຢູ່ (ຈະບໍ່ຖືກລົບ ແຕ່ຈະບໍ່ມີແທັບໃຫ້ກັ່ນຕອງອີກ).` : '';
+      confirmModal(`ຢືນຢັນລົບປະເພດທຸລະກິດ "${label}"?${warn}`, async ()=>{
+        BIZ = BIZ.filter(b=>b.id!==id);
+        if(currentTab===id) currentTab='all';
+        await persist();
+        renderBizSelect(); renderBizList(); renderTabs(); renderTable();
+        setStatus('🗑️ ລົບປະເພດທຸລະກິດແລ້ວ');
+      });
+    };
+  });
+  el.querySelectorAll('button[data-editid]').forEach(btn=>{
+    btn.onclick = ()=> editBizLabel(btn.dataset.editid);
+  });
+}
+
+function editBizLabel(id){
+  const b = BIZ.find(x=>x.id===id);
+  if(!b) return;
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `<div class="modal">
+    <h3 style="margin-top:0;font-size:1rem;">✏️ ແກ້ໄຂຊື່ທຸລະກິດ</h3>
+    <label>ຊື່ທຸລະກິດ (ໃສ່ໄອຄອນ emoji ນຳໜ້າໄດ້)</label>
+    <input id="editbiz_label" value="${b.label.replace(/"/g,'&quot;')}" style="margin-bottom:12px;">
+    <div class="toolbar"><button class="btn-primary" id="editbiz_ok">ບັນທຶກ</button><button class="btn-ghost" id="editbiz_cancel">ຍົກເລີກ</button></div>
+  </div>`;
+  document.body.appendChild(bg);
+  const inp = document.getElementById('editbiz_label');
+  inp.focus(); inp.select();
+  document.getElementById('editbiz_cancel').onclick = ()=>bg.remove();
+  document.getElementById('editbiz_ok').onclick = async ()=>{
+    const newLabel = inp.value.trim();
+    if(!newLabel){ setStatus('⚠️ ກະລຸນາໃສ່ຊື່ທຸລະກິດ'); return; }
+    b.label = newLabel;
+    b.updatedAt = Date.now();
+    await persist();
+    renderBizSelect(); renderBizList(); renderTabs(); renderTable();
+    setStatus('✅ ແກ້ໄຂຊື່ທຸລະກິດແລ້ວ');
+    bg.remove();
+  };
+}
+
+document.getElementById('btn_addbiz').onclick = async ()=>{
+  const icon = document.getElementById('newbiz_icon').value.trim();
+  const name = document.getElementById('newbiz_label').value.trim();
+  if(!name){ setStatus('⚠️ ກະລຸນາໃສ່ຊື່ທຸລະກິດ'); return; }
+  const label = (icon ? icon+' ' : '🏷️ ')+name;
+  BIZ.push({id: slugify(name), label, updatedAt: Date.now()});
+  await persist();
+  document.getElementById('newbiz_icon').value='';
+  document.getElementById('newbiz_label').value='';
+  renderBizSelect(); renderBizList(); renderTabs();
+  setStatus('✅ ເພີ່ມປະເພດທຸລະກິດແລ້ວ');
+};
+const bizSelect = document.getElementById('f_biz');
+function renderBizSelect(){
+  bizSelect.innerHTML = BIZ.map(b=>`<option value="${b.id}">${b.label}</option>`).join('');
+}
+renderBizSelect();
+const currencySelect = document.getElementById('f_currency');
+currencySelect.innerHTML = CURRENCIES.map(c=>`<option value="${c}">${c} (${CUR_SYMBOL[c]})</option>`).join('');
+const currencySelectPrice = document.getElementById('f_currency_price');
+currencySelectPrice.innerHTML = CURRENCIES.map(c=>`<option value="${c}">${c} (${CUR_SYMBOL[c]})</option>`).join('');
+
+function parseNum(v){ return Number(String(v==null?'':v).replace(/,/g,''))||0; }
+function fmtNumStr(v){ const n = Number(v)||0; return n.toLocaleString('en-US',{maximumFractionDigits:2}); }
+function fmtThousands(el){
+  const raw = el.value;
+  const pos = (el.selectionStart==null) ? raw.length : el.selectionStart;
+  const before = raw.slice(0,pos).replace(/[^0-9.]/g,'').length;
+  let clean = raw.replace(/[^0-9.]/g,'');
+  const di = clean.indexOf('.');
+  if(di>=0) clean = clean.slice(0,di+1) + clean.slice(di+1).replace(/\./g,'');
+  let [ip='', fp] = clean.split('.');
+  ip = ip.replace(/^0+(?=\d)/,'');
+  if(ip==='' && fp!==undefined) ip = '0';
+  const out = ip.replace(/\B(?=(\d{3})+(?!\d))/g,',') + (fp!==undefined ? '.'+fp : '');
+  if(out!==raw){
+    el.value = out;
+    let c=0, q=0;
+    while(q<out.length && c<before){ if(/[0-9.]/.test(out[q])) c++; q++; }
+    try{ el.setSelectionRange(q,q); }catch(e){}
+  }
+}
+document.addEventListener('input', e=>{ if(e.target && e.target.matches && e.target.matches('[data-thousands]')) fmtThousands(e.target); });
+
+function renderRateInputs(){
+  document.getElementById('rate_thb').value = rates.THB ? fmtNumStr(rates.THB) : '';
+  document.getElementById('rate_cny').value = rates.CNY ? fmtNumStr(rates.CNY) : '';
+  document.getElementById('rate_usd').value = rates.USD ? fmtNumStr(rates.USD) : '';
+  document.getElementById('rate-date-lbl').textContent = rates.date ? ('ອັບເດດລ່າສຸດ: '+rates.date) : 'ຍັງບໍ່ໄດ້ຕັ້ງ';
+  document.getElementById('tbody-ratehistory').innerHTML = rateHistory.length ? rateHistory.map((r,i)=>`<tr><td>${r.date}${r.time?' '+r.time:''}</td><td>${r.THB}</td><td>${r.CNY}</td><td>${r.USD}</td><td class="actions"><button class="btn-danger" onclick="deleteRateHistory(${i})">🗑️ ລົບ</button></td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--sub);">ຍັງບໍ່ມີປະຫວັດ</td></tr>';
+}
+window.deleteRateHistory = (idx)=>{
+  const r = rateHistory[idx];
+  if(!r) return;
+  confirmModal(`ຢືນຢັນລົບປະຫວັດອັດຕາແລກປ່ຽນວັນທີ ${r.date}${r.time?' '+r.time:''} (ບາດ ${r.THB}, ຢວນ ${r.CNY}, ໂດລາ ${r.USD})? ການລົບນີ້ບໍ່ປ່ຽນອັດຕາທີ່ກຳລັງໃຊ້ຢູ່ປັດຈຸບັນ.`, async ()=>{
+    rateHistory.splice(idx, 1);
+    await persist();
+    renderRateInputs();
+    setStatus('🗑️ ລົບປະຫວັດອັດຕາແລກປ່ຽນແລ້ວ');
+  });
+};
+
+document.getElementById('btn_saverate').onclick = async ()=>{
+  rates = {
+    THB: parseNum(document.getElementById('rate_thb').value),
+    CNY: parseNum(document.getElementById('rate_cny').value),
+    USD: parseNum(document.getElementById('rate_usd').value),
+    date: new Date().toISOString().slice(0,10),
+    time: new Date().toLocaleTimeString('lo-LA'),
+  };
+  rateHistory.unshift({id: uid(), ...rates, updatedAt: Date.now()});
+  await persist();
+  renderRateInputs();
+  renderTable();
+  setStatus('✅ ບັນທຶກອັດຕາແລກປ່ຽນແລ້ວ');
+};
+
+// view switching
+document.querySelectorAll('.vtab').forEach(el=>{
+  el.onclick = ()=>{
+    document.querySelectorAll('.vtab').forEach(v=>v.classList.remove('active'));
+    el.classList.add('active');
+    ['products','history','reports'].forEach(v=>document.getElementById('view-'+v).classList.toggle('hidden', v!==el.dataset.v));
+    if(el.dataset.v==='history') renderHistory();
+    if(el.dataset.v==='reports') renderReports();
+  };
+});
+
+function bizLabel(id){return (BIZ.find(b=>b.id===id)||{}).label || id;}
+function uid(){return 'p'+Date.now()+Math.random().toString(36).slice(2,6);}
+function setStatus(msg){document.getElementById('status').textContent = msg;}
+function daysUntil(dateStr){ if(!dateStr) return Infinity; return Math.ceil((new Date(dateStr)-new Date())/86400000); }
+
+let selectedIds = new Set();
+
+function confirmModal(message, onConfirm){
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `<div class="modal">
+    <h3 style="margin-top:0;font-size:1rem;">⚠️ ຢືນຢັນ</h3>
+    <p style="font-size:0.88rem;">${message}</p>
+    <div class="toolbar"><button class="btn-danger" id="cf_ok">ຢືນຢັນລົບ</button><button class="btn-ghost" id="cf_cancel">ຍົກເລີກ</button></div>
+  </div>`;
+  document.body.appendChild(bg);
+  document.getElementById('cf_cancel').onclick = ()=>bg.remove();
+  document.getElementById('cf_ok').onclick = ()=>{ bg.remove(); onConfirm(); };
+}
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkbar');
+  if(selectedIds.size>0){
+    bar.classList.remove('hidden');
+    document.getElementById('bulkcount').textContent = `ເລືອກແລ້ວ ${selectedIds.size} ລາຍການ`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function renderTable(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const lowonly = document.getElementById('lowonly').checked;
+  const soononly = document.getElementById('soononly').checked;
+  const sortsel = document.getElementById('sortsel').value;
+  const tbody = document.getElementById('tbody');
+  let list = items.filter(it => currentTab==='all' || it.biz===currentTab);
+  if(q) list = list.filter(it => (it.name+it.code+it.cat+(it.supplier||'')+(it.stall||'')+(it.carModel||'')).toLowerCase().includes(q));
+  if(lowonly) list = list.filter(it => Number(it.qty) <= Number(it.min));
+  if(soononly) list = list.filter(it => it.expiry && daysUntil(it.expiry) <= 30);
+  if(sortsel==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
+  if(sortsel==='qty_asc') list.sort((a,b)=>a.qty-b.qty);
+  if(sortsel==='qty_desc') list.sort((a,b)=>b.qty-a.qty);
+  if(sortsel==='expiry') list.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
+  document.getElementById('empty').classList.toggle('hidden', list.length>0);
+  tbody.innerHTML = list.map(it=>{
+    const low = Number(it.qty) <= Number(it.min);
+    const soon = it.expiry && daysUntil(it.expiry) <= 30 && daysUntil(it.expiry) >= 0;
+    return `<tr class="${low?'low':(soon?'soon':'')}">
+      <td class="owner-only"><input type="checkbox" class="row-check" data-id="${it.id}" ${selectedIds.has(it.id)?'checked':''}></td>
+      <td>${it.code}</td><td>${it.name}</td>
+      <td><span class="badge">${bizLabel(it.biz)}</span></td>
+      <td>${it.cat||''}</td><td>${it.unit||''}</td>
+      <td>${it.qty}</td><td>${it.min}</td>
+      <td class="cost-only">${it.cost} ${CUR_SYMBOL[it.currency||'LAK']}</td><td>${it.price} ${CUR_SYMBOL[it.priceCurrency||it.currency||'LAK']}</td>
+      <td class="cost-only">${Math.round(toLAK(it.cost, it.currency)*it.qty).toLocaleString()}</td>
+      <td>${it.expiry||'-'}</td><td>${it.supplier||''}</td><td>${it.stall||''}</td><td>${it.carModel||''}</td>
+      <td class="actions">
+        <button class="btn-green" onclick="quickMove('${it.id}','in')">➕ ຮັບ</button>
+        <button class="btn-warn" onclick="quickMove('${it.id}','out')">➖ ຈ່າຍ</button>
+        <button class="btn-ghost owner-only" onclick="editItem('${it.id}')">✏️</button>
+        <button class="btn-danger owner-only" onclick="deleteItem('${it.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('.row-check').forEach(cb=>{
+    cb.onchange = ()=>{
+      if(cb.checked) selectedIds.add(cb.dataset.id); else selectedIds.delete(cb.dataset.id);
+      updateBulkBar();
+      document.getElementById('checkall').checked = list.length>0 && list.every(it=>selectedIds.has(it.id));
+    };
+  });
+  document.getElementById('checkall').checked = list.length>0 && list.every(it=>selectedIds.has(it.id));
+  document.getElementById('checkall').onchange = (e)=>{
+    if(e.target.checked) list.forEach(it=>selectedIds.add(it.id));
+    else list.forEach(it=>selectedIds.delete(it.id));
+    updateBulkBar();
+    renderTable();
+  };
+  updateBulkBar();
+  renderBizList();
+}
+document.getElementById('btn_bulkcancel').onclick = ()=>{ selectedIds.clear(); updateBulkBar(); renderTable(); };
+document.getElementById('btn_bulkdelete').onclick = ()=>{
+  const n = selectedIds.size;
+  if(n===0) return;
+  confirmModal(`ທ່ານກຳລັງຈະລົບ ${n} ລາຍການ, ຂໍ້ມູນຈະຫາຍໄປຖາວອນ. ຢືນຢັນບໍ?`, async ()=>{
+    items = items.filter(i=>!selectedIds.has(i.id));
+    selectedIds.clear();
+    await persist();
+    renderTable();
+    setStatus(`🗑️ ລົບແລ້ວ ${n} ລາຍການ`);
+  });
+};
+
+function clearForm(){
+  editId = null;
+  ['f_code','f_name','f_cat','f_unit','f_supplier','f_expiry','f_stall','f_carmodel'].forEach(id=>document.getElementById(id).value='');
+  ['f_qty','f_min','f_cost','f_price'].forEach(id=>document.getElementById(id).value=0);
+  currencySelect.value = 'LAK';
+  currencySelectPrice.value = 'LAK';
+  document.getElementById('btn_save').textContent = '➕ ບັນທຶກສິນຄ້າ';
+}
+
+function readForm(){
+  return {
+    biz: bizSelect.value,
+    code: document.getElementById('f_code').value.trim(),
+    name: document.getElementById('f_name').value.trim(),
+    cat: document.getElementById('f_cat').value.trim(),
+    unit: document.getElementById('f_unit').value.trim(),
+    qty: parseNum(document.getElementById('f_qty').value),
+    min: parseNum(document.getElementById('f_min').value),
+    currency: currencySelect.value,
+    priceCurrency: currencySelectPrice.value,
+    cost: parseNum(document.getElementById('f_cost').value),
+    price: parseNum(document.getElementById('f_price').value),
+    supplier: document.getElementById('f_supplier').value.trim(),
+    expiry: document.getElementById('f_expiry').value || '',
+    stall: document.getElementById('f_stall').value.trim(),
+    carModel: document.getElementById('f_carmodel').value.trim(),
+  };
+}
+
+const LS_KEY = 'stockAppData_v1';
+let dataUpdatedAt = 0;
+let dirHandle = null;   // ໂຟນເດີທີ່ຜູກໄວ້ (File System Access API)
+let dirName = '';
+
+function snapshot(){ return {items, history, rates, rateHistory, bizTypes: BIZ, updatedAt: dataUpdatedAt}; }
+function applyData(d){
+  if(Array.isArray(d.items)) items = d.items;
+  if(Array.isArray(d.history)) history = d.history;
+  if(d.rates) rates = d.rates;
+  if(Array.isArray(d.rateHistory)) rateHistory = d.rateHistory;
+  if(Array.isArray(d.bizTypes) && d.bizTypes.length) BIZ = d.bizTypes;
+  dataUpdatedAt = d.updatedAt || 0;
+}
+function saveLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(snapshot())); return true; }
+  catch(e){ return false; }
+}
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    applyData(JSON.parse(raw));
+    if(!dataUpdatedAt) dataUpdatedAt = Date.now();
+    return true;
+  }catch(e){ return false; }
+}
+
+// ---- IndexedDB: ເກັບ folder handle ໄວ້ຂ້າມການເປີດແຕ່ລະຄັ້ງ ----
+function idbOpen(){
+  return new Promise((res, rej)=>{
+    const r = indexedDB.open('stockAppFS', 1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore('kv');
+    r.onsuccess = ()=> res(r.result);
+    r.onerror = ()=> rej(r.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('kv','readwrite');
+    tx.objectStore('kv').put(val, key);
+    tx.oncomplete = ()=>res(); tx.onerror = ()=>rej(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('kv','readonly');
+    const rq = tx.objectStore('kv').get(key);
+    rq.onsuccess = ()=>res(rq.result); rq.onerror = ()=>rej(rq.error);
+  });
+}
+
+const FS_SUPPORTED = typeof window.showDirectoryPicker === 'function';
+
+async function ensurePermission(handle, mode){
+  try{
+    if((await handle.queryPermission({mode})) === 'granted') return true;
+    if((await handle.requestPermission({mode})) === 'granted') return true;
+  }catch(e){}
+  return false;
+}
+
+function setFolderStatus(){
+  const el = document.getElementById('folder-status');
+  const rc = document.getElementById('btn_reconnect_folder');
+  if(el) el.textContent = dirHandle ? ('✅ ບັນທຶກລົງໂຟນເດີ: ' + dirName) : '⚠️ ຍັງບໍ່ໄດ້ເລືອກໂຟນເດີ — ຂໍ້ມູນບັນທຶກໃນ browser ນີ້ (localStorage) ເທົ່ານັ້ນ';
+  if(rc) rc.classList.toggle('hidden', !(window._pendingDirHandle && !dirHandle));
+}
+document.getElementById('btn_choose_folder').onclick = chooseFolder;
+document.getElementById('btn_reconnect_folder').onclick = reconnectFolderClick;
+
+async function chooseFolder(){
+  if(!FS_SUPPORTED){
+    setStatus('⚠️ Browser ນີ້ບໍ່ຮອງຮັບການເລືອກໂຟນເດີ — ກະລຸນາໃຊ້ Chrome ຫຼື Edge ຢູ່ຄອມ');
+    return;
+  }
+  try{
+    const handle = await window.showDirectoryPicker({mode:'readwrite'});
+    if(!(await ensurePermission(handle,'readwrite'))){
+      setStatus('⚠️ ບໍ່ໄດ້ຮັບອະນຸຍາດເຂົ້າເຖິງໂຟນເດີ');
+      return;
+    }
+    dirHandle = handle; dirName = handle.name;
+    await idbSet('dirHandle', handle);
+    setFolderStatus();
+    // ຖ້າໂຟນເດີມີຂໍ້ມູນເກົ່າຢູ່ (stock_data.json) ແລະໃໝ່ກວ່າ ໃຫ້ໂຫຼດມາໃຊ້
+    const loaded = await loadFromFolder();
+    if(!loaded) await writeToFolder();   // ໂຟນເດີໃໝ່ / ວ່າງ -> ຂຽນຂໍ້ມູນປັດຈຸບັນລົງໄປ
+    renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable();
+    setStatus('✅ ຜູກໂຟນເດີ "' + dirName + '" ແລ້ວ');
+  }catch(e){
+    if(e && e.name === 'AbortError') return;   // ຜູ້ໃຊ້ກົດຍົກເລີກ
+    setStatus('⚠️ ເລືອກໂຟນເດີບໍ່ສຳເລັດ: ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function loadFromFolder(){
+  if(!dirHandle) return false;
+  try{
+    const fh = await dirHandle.getFileHandle('stock_data.json');
+    const file = await fh.getFile();
+    const d = JSON.parse(await file.text());
+    if((d.updatedAt||0) >= dataUpdatedAt){ applyData(d); saveLocal(); return true; }
+  }catch(e){ /* ຍັງບໍ່ມີໄຟລ໌ໃນໂຟນເດີນີ້ -- ປົກກະຕິສຳລັບໂຟນເດີໃໝ່ */ }
+  return false;
+}
+
+async function writeToFolder(){
+  if(!dirHandle) return false;
+  try{
+    if(!(await ensurePermission(dirHandle,'readwrite'))) return false;
+    const fh = await dirHandle.getFileHandle('stock_data.json', {create:true});
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify(snapshot(), null, 2));
+    await w.close();
+    return true;
+  }catch(e){ setStatus('⚠️ ບັນທຶກລົງໂຟນເດີບໍ່ສຳເລັດ: ' + (e && e.message ? e.message : e)); return false; }
+}
+
+async function writeExcelToFolder(blob, filename){
+  if(!dirHandle) return false;
+  try{
+    if(!(await ensurePermission(dirHandle,'readwrite'))) return false;
+    let sub = dirHandle;
+    try{ sub = await dirHandle.getDirectoryHandle('backup', {create:true}); }catch(e){}
+    const fh = await sub.getFileHandle(filename, {create:true});
+    const w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+    return true;
+  }catch(e){ return false; }
+}
+
+// ================= SUPABASE: ການເຊື່ອມຕໍ່ຄລາວ + login =================
+const SB_CFG_KEY = 'stockAppSupabaseCfg';
+let sb = null;           // supabase client
+let sbShop = null;       // id ຂອງຮ້ານ (= id ເຈົ້າຂອງ) — ພະນັກງານໃຊ້ id ຮ້ານຂອງເຈົ້າຂອງ
+let sbUser = null;       // current logged-in user object
+let sbSyncTimer = null;
+
+function loadSbConfig(){
+  try{ return JSON.parse(localStorage.getItem(SB_CFG_KEY) || 'null'); }catch(e){ return null; }
+}
+function saveSbConfig(url, key){
+  localStorage.setItem(SB_CFG_KEY, JSON.stringify({url, key}));
+}
+function clearSbConfig(){
+  localStorage.removeItem(SB_CFG_KEY);
+}
+
+function initSupabaseClient(url, key){
+  try{
+    sb = window.supabase.createClient(url, key);
+    sb.auth.onAuthStateChange((event, session)=>{
+      if(event === 'PASSWORD_RECOVERY'){ showGate('reset'); }
+    });
+    return true;
+  }catch(e){ return false; }
+}
+
+// ============ PER-RECORD CLOUD SYNC (ແກ້ບັນຫາຂໍ້ມູນທັບກັນ) ============
+// ແທນທີ່ຈະສົ່ງຂໍ້ມູນທັງກ້ອນທຸກຄັ້ງ (ສ່ຽງທັບຂໍ້ມູນຂອງອຸປະກອນອື່ນ), ລະບົບນີ້ສົ່ງສະເພາະ
+// "ແຖວ" (ສິນຄ້າ/ປະຫວັດ/ທຸລະກິດ/ອັດຕາ) ທີ່ປ່ຽນແປງແທ້ໆ ແຍກກັນ -- ການທັບກັນຈະເກີດ
+// ສະເພາະຖ້າ 2 ອຸປະກອນແກ້ "ແຖວດຽວກັນ" ພ້ອມກັນແທ້ໆເທົ່ານັ້ນ (ໂອກາດນ້ອຍຫຼາຍ)
+const SB_TABLES = {
+  items: 'stock_items', history: 'stock_history', biz: 'stock_biz_types', rateHistory: 'stock_rate_history'
+};
+const PUSHED_KEY = 'stockAppPushedState_v1';
+let pushedState = {items:{}, history:{}, biz:{}, rateHistory:{}, ratesHash:''};
+
+function loadPushedState(){
+  try{ pushedState = JSON.parse(localStorage.getItem(PUSHED_KEY)) || pushedState; }catch(e){}
+}
+function savePushedState(){
+  try{ localStorage.setItem(PUSHED_KEY, JSON.stringify(pushedState)); }catch(e){}
+}
+
+function shopKey(){ return sbShop || (sbUser && sbUser.id); }
+function isStaff(){ return !!(sbUser && sbShop && sbShop !== sbUser.id); }
+function applyRole(){ document.body.classList.toggle('role-staff', isStaff()); }
+
+function backfillIds(){
+  // ຂໍ້ມູນເກົ່າ (ກ່ອນມີລະບົບ sync ແບບແຍກແຖວ) ອາດຂາດ id/updatedAt -- ເພີ່ມໃຫ້ຄົບເພື່ອບໍ່ໃຫ້ sync ພັງ
+  [items, history, BIZ, rateHistory].forEach(arr=>{
+    arr.forEach(x=>{ if(!x.id) x.id = uid(); if(!x.updatedAt) x.updatedAt = Date.now(); });
+  });
+}
+
+async function sbPushTable(tableKey, localArray){
+  if(!sb || !sbUser) return;
+  const table = SB_TABLES[tableKey];
+  const known = pushedState[tableKey];
+  const currentIds = new Set();
+  const upserts = [];
+  localArray.forEach(rec=>{
+    currentIds.add(rec.id);
+    if(known[rec.id] !== rec.updatedAt){
+      const {id, updatedAt, ...data} = rec;
+      upserts.push({id, user_id: shopKey(), data, deleted:false, updated_at: updatedAt});
+    }
+  });
+  const deletedIds = Object.keys(known).filter(id=>!currentIds.has(id));
+  const now = Date.now();
+  deletedIds.forEach(id=> upserts.push({id, user_id: shopKey(), data:{}, deleted:true, updated_at: now}));
+  if(upserts.length === 0) return;
+  try{
+    const { error } = await sb.from(table).upsert(upserts);
+    if(error) throw error;
+    upserts.forEach(u=>{
+      if(u.deleted) delete known[u.id]; else known[u.id] = u.updated_at;
+    });
+    savePushedState();
+  }catch(e){ console.warn('push failed for '+table, e); setStatus('⚠️ Sync ຂຶ້ນຄລາວບໍ່ສຳເລັດ (ຈະລອງອີກຄັ້ງ): '+(e.message||e)); }
+}
+
+async function sbPushSettings(){
+  if(!sb || !sbUser) return;
+  const hash = JSON.stringify(rates);
+  if(hash === pushedState.ratesHash) return;
+  try{
+    const { error } = await sb.from('stock_settings').upsert({ user_id: shopKey(), rates, updated_at: Date.now() });
+    if(error) throw error;
+    pushedState.ratesHash = hash;
+    savePushedState();
+  }catch(e){ console.warn('push settings failed', e); }
+}
+
+function pendingSyncCount(){
+  let n = 0;
+  [['items',items],['history',history],['biz',BIZ],['rateHistory',rateHistory]].forEach(([key,arr])=>{
+    const known = pushedState[key]||{};
+    const currentIds = new Set();
+    arr.forEach(x=>{ currentIds.add(x.id); if(known[x.id] !== x.updatedAt) n++; });
+    Object.keys(known).forEach(id=>{ if(!currentIds.has(id)) n++; });
+  });
+  if(JSON.stringify(rates) !== pushedState.ratesHash) n++;
+  return n;
+}
+function updateSyncBadge(){
+  const el = document.getElementById('sync-status');
+  if(!el || !sb || !sbUser) { if(el) el.textContent=''; return; }
+  const n = pendingSyncCount();
+  el.textContent = n>0 ? ('⏳ ລໍ sync '+n+' ລາຍການ') : '☁️ sync ຄົບແລ້ວ';
+  el.style.color = n>0 ? 'var(--warn)' : 'var(--accent2)';
+}
+
+async function sbPushAll(){
+  if(!sb || !sbUser) return;
+  backfillIds();
+  await sbPushTable('items', items);
+  await sbPushTable('history', history);
+  await sbPushTable('biz', BIZ);
+  await sbPushTable('rateHistory', rateHistory);
+  await sbPushSettings();
+  updateSyncBadge();
+}
+
+function mergeTable(localArray, remoteRows){
+  const byId = {}; localArray.forEach(x=>byId[x.id]=x);
+  remoteRows.forEach(r=>{
+    const loc = byId[r.id];
+    if(r.deleted){
+      if(!loc || (loc.updatedAt||0) <= r.updated_at) delete byId[r.id];
+    } else {
+      if(!loc || (loc.updatedAt||0) < r.updated_at) byId[r.id] = {...r.data, id:r.id, updatedAt:r.updated_at};
+    }
+  });
+  return Object.values(byId);
+}
+
+async function sbPullAndMerge(){
+  if(!sb || !sbUser) return false;
+  try{
+    const [itemsRes, historyRes, bizRes, rateRes, settingsRes] = await Promise.all([
+      sb.from(SB_TABLES.items).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
+      sb.from(SB_TABLES.history).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
+      sb.from(SB_TABLES.biz).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
+      sb.from(SB_TABLES.rateHistory).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
+      sb.from('stock_settings').select('rates,updated_at').eq('user_id', shopKey()).maybeSingle(),
+    ]);
+    if(itemsRes.error||historyRes.error||bizRes.error||rateRes.error) throw (itemsRes.error||historyRes.error||bizRes.error||rateRes.error);
+    items = mergeTable(items, itemsRes.data||[]);
+    history = mergeTable(history, historyRes.data||[]);
+    const mergedBiz = mergeTable(BIZ, bizRes.data||[]);
+    if(mergedBiz.length) BIZ = mergedBiz;
+    rateHistory = mergeTable(rateHistory, rateRes.data||[]);
+    if(settingsRes.data && (settingsRes.data.updated_at||0) > 0 && JSON.stringify(settingsRes.data.rates) !== JSON.stringify(rates)){
+      // ເອົາອັດຕາຈາກຄລາວ ສະເພາະຖ້າຍັງບໍ່ເຄີຍ push ອັດຕາຂອງເຄື່ອງນີ້ອອກໄປ (ຫຼີກລ່ຽງທັບຄືນ)
+      if(!pushedState.ratesHash) { rates = settingsRes.data.rates; pushedState.ratesHash = JSON.stringify(rates); }
+    }
+    savePushedState();
+    saveLocal();
+    return true;
+  }catch(e){ console.warn('sbPullAndMerge failed', e); return false; }
+}
+
+function scheduleSbPush(){
+  if(!sb || !sbUser) return;
+  clearTimeout(sbSyncTimer);
+  sbSyncTimer = setTimeout(sbPushAll, 600); // debounce ເພື່ອບໍ່ sync ຖີ່ເກີນໄປ
+}
+
+let sbPollTimer = null;
+function startSbPolling(){
+  stopSbPolling();
+  sbPollTimer = setInterval(async ()=>{
+    await sbPushAll();   // ລອງສົ່ງສິ່ງທີ່ຄ້າງ (ເຄີຍລົ້ມເຫຼວຍ້ອນເນັດຂາດ) ອີກຄັ້ງ
+    const changed = await sbPullAndMerge();
+    if(changed){ renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable(); }
+  }, 20000); // ທຸກ 20 ວິນາທີ ຕອນເປີດແອັບຄ້າງໄວ້: ທັງດຶງຂອງອຸປະກອນອື່ນ ແລະ ລອງສົ່ງຂອງຄ້າງຄືນ
+}
+function stopSbPolling(){ if(sbPollTimer){ clearInterval(sbPollTimer); sbPollTimer=null; } }
+
+// ລອງ sync ທັນທີທີ່ເນັດກັບມາໃຊ້ໄດ້ (ບໍ່ຕ້ອງລໍຖ້າຮອບ poll ຕໍ່ໄປ)
+window.addEventListener('online', async ()=>{
+  if(sb && sbUser){
+    setStatus('🌐 ເນັດກັບມາແລ້ວ — ກຳລັງ sync ຂໍ້ມູນທີ່ຄ້າງ...');
+    await sbPushAll();
+    await sbPullAndMerge();
+    renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable();
+  }
+});
+
+async function persist(){
+  dataUpdatedAt = Date.now();
+  backfillIds();
+  const okLocal = saveLocal();
+  const okFolder = await writeToFolder();
+  scheduleSbPush();
+  updateSyncBadge();
+  if(!okLocal && !okFolder){ setStatus('⚠️ ບໍ່ສາມາດບັນທຶກໄດ້ໃນອຸປະກອນນີ້'); }
+  checkExportReminder();
+}
+
+// ---- Gate (setup + login) wiring ----
+function showGate(which){
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('app-root').classList.add('hidden');
+  document.getElementById('gate-setup').classList.toggle('hidden', which!=='setup');
+  document.getElementById('gate-login').classList.toggle('hidden', which!=='login');
+  document.getElementById('gate-forgot').classList.toggle('hidden', which!=='forgot');
+  document.getElementById('gate-reset').classList.toggle('hidden', which!=='reset');
+}
+
+document.getElementById('link_forgot').onclick = (e)=>{
+  e.preventDefault();
+  document.getElementById('forgot_email').value = document.getElementById('auth_email').value;
+  document.getElementById('forgot_err').textContent=''; document.getElementById('forgot_msg').textContent='';
+  showGate('forgot');
+};
+document.getElementById('btn_forgot_back').onclick = ()=> showGate('login');
+
+document.getElementById('btn_forgot_send').onclick = async ()=>{
+  const email = document.getElementById('forgot_email').value.trim();
+  const errEl = document.getElementById('forgot_err'), msgEl = document.getElementById('forgot_msg');
+  errEl.textContent=''; msgEl.textContent='';
+  if(!email){ errEl.textContent='⚠️ ກະລຸນາໃສ່ອີເມວ'; return; }
+  try{
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href.split('#')[0] });
+    if(error) throw error;
+    msgEl.textContent = '✅ ສົ່ງແລ້ວ — ກວດອີເມວ (ລວມ Junk/Spam) ແລ້ວກົດລິ້ງເພື່ອຕັ້ງລະຫັດຜ່ານໃໝ່';
+  }catch(e){ errEl.textContent = '⚠️ '+(e.message||e); }
+};
+
+document.getElementById('btn_reset_save').onclick = async ()=>{
+  const p1 = document.getElementById('reset_password').value;
+  const p2 = document.getElementById('reset_password2').value;
+  const errEl = document.getElementById('reset_err');
+  errEl.textContent = '';
+  if(p1.length < 6){ errEl.textContent = '⚠️ ລະຫັດຜ່ານຕ້ອງຢ່າງໜ້ອຍ 6 ໂຕ'; return; }
+  if(p1 !== p2){ errEl.textContent = '⚠️ ລະຫັດຜ່ານທັງສອງຊ່ອງບໍ່ຕົງກັນ'; return; }
+  try{
+    const { data, error } = await sb.auth.updateUser({ password: p1 });
+    if(error) throw error;
+    window.history.replaceState(null, '', window.location.pathname); // ລ້າງ token ອອກຈາກ URL (window.history ເພາະ `history` ໃນແອັບນີ້ຖືກໃຊ້ເປັນຂໍ້ມູນປະຫວັດສິນຄ້າໄປແລ້ວ)
+    await onLoggedIn(data.user);
+  }catch(e){ errEl.textContent = '⚠️ '+(e.message||e); }
+};
+function showApp(){
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('app-root').classList.remove('hidden');
+  document.getElementById('auth-userlabel').textContent = sbUser ? ('👤 '+sbUser.email) : '';
+}
+
+document.getElementById('btn_sb_connect').onclick = async ()=>{
+  const url = document.getElementById('sb_url').value.trim();
+  const key = document.getElementById('sb_key').value.trim();
+  const errEl = document.getElementById('sb_setup_err');
+  errEl.textContent = '';
+  if(!url || !key){ errEl.textContent = '⚠️ ກະລຸນາໃສ່ URL ແລະ key ໃຫ້ຄົບ'; return; }
+  if(!initSupabaseClient(url, key)){ errEl.textContent = '⚠️ URL/key ຮູບແບບບໍ່ຖືກຕ້ອງ'; return; }
+  saveSbConfig(url, key);
+  await checkAuthSession();
+};
+
+document.getElementById('btn_sb_reset').onclick = ()=>{
+  clearSbConfig();
+  sb = null; sbUser = null;
+  document.getElementById('sb_url').value='';
+  document.getElementById('sb_key').value='';
+  showGate('setup');
+};
+
+document.getElementById('btn_signup').onclick = async ()=>{
+  const email = document.getElementById('auth_email').value.trim();
+  const password = document.getElementById('auth_password').value;
+  const errEl = document.getElementById('auth_err'), msgEl = document.getElementById('auth_msg');
+  errEl.textContent=''; msgEl.textContent='';
+  if(!email || password.length < 6){ errEl.textContent='⚠️ ອີເມວ ແລະລະຫັດຜ່ານ (ຢ່າງໜ້ອຍ 6 ໂຕ) ຕ້ອງຄົບ'; return; }
+  try{
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if(error) throw error;
+    if(data.session){ await onLoggedIn(data.session.user); }
+    else { msgEl.textContent = '✅ ສະໝັກແລ້ວ — ກວດອີເມວເພື່ອຢືນຢັນ ແລ້ວຄ່ອຍເຂົ້າສູ່ລະບົບ'; }
+  }catch(e){ errEl.textContent = '⚠️ '+(e.message||e); }
+};
+
+document.getElementById('btn_signin').onclick = async ()=>{
+  const email = document.getElementById('auth_email').value.trim();
+  const password = document.getElementById('auth_password').value;
+  const errEl = document.getElementById('auth_err');
+  errEl.textContent='';
+  try{
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    await onLoggedIn(data.user);
+  }catch(e){ errEl.textContent = '⚠️ '+(e.message||e); }
+};
+
+document.getElementById('btn_signout').onclick = async ()=>{
+  try{ await sb.auth.signOut(); }catch(e){}
+  sbUser = null; sbShop = null;
+  applyRole();
+  stopSbPolling();
+  showGate('login');
+};
+
+function escHtml(t){ return String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function renderStaffPanel(){
+  const card = document.getElementById('staff-card');
+  if(!card || !sb || !sbUser || isStaff()) return;
+  const msg = document.getElementById('staff_msg'), list = document.getElementById('staff_list');
+  try{
+    const [inv, mem] = await Promise.all([
+      sb.from('stock_invites').select('email').eq('shop_id', shopKey()),
+      sb.from('stock_members').select('member_id,email').eq('shop_id', shopKey()),
+    ]);
+    if(inv.error || mem.error) throw (inv.error || mem.error);
+    const rows = [];
+    (mem.data||[]).forEach(m=> rows.push(`<tr><td>${escHtml(m.email)}</td><td>✅ ເຂົ້າຮ້ານແລ້ວ</td><td><button class="btn-danger" data-member="${escHtml(m.member_id)}">ລົບສິດ</button></td></tr>`));
+    (inv.data||[]).forEach(i=> rows.push(`<tr><td>${escHtml(i.email)}</td><td>⏳ ລໍພະນັກງານສະໝັກ</td><td><button class="btn-ghost" data-invite="${escHtml(i.email)}">ຍົກເລີກ</button></td></tr>`));
+    list.innerHTML = rows.length ? `<div class="tablewrap"><table><thead><tr><th>ອີເມວ</th><th>ສະຖານະ</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<p class="hint">ຍັງບໍ່ມີພະນັກງານ</p>';
+    list.querySelectorAll('[data-member]').forEach(b=> b.onclick = async ()=>{
+      const r = await sb.from('stock_members').delete().eq('member_id', b.dataset.member).eq('shop_id', shopKey());
+      msg.textContent = r.error ? ('⚠️ '+r.error.message) : '✅ ລົບສິດແລ້ວ';
+      renderStaffPanel();
+    });
+    list.querySelectorAll('[data-invite]').forEach(b=> b.onclick = async ()=>{
+      const r = await sb.from('stock_invites').delete().eq('shop_id', shopKey()).eq('email', b.dataset.invite);
+      msg.textContent = r.error ? ('⚠️ '+r.error.message) : '✅ ຍົກເລີກຄຳເຊີນແລ້ວ';
+      renderStaffPanel();
+    });
+  }catch(e){
+    list.innerHTML = '';
+    msg.textContent = '⚠️ ຍັງໃຊ້ບັນຊີພະນັກງານບໍ່ໄດ້ — ຕ້ອງ run SQL ສ່ວນເພີ່ມ (ເບິ່ງໃນ ⚙️ ຕັ້ງຄ່າ Supabase) ກ່ອນ: '+(e.message||e);
+  }
+}
+document.getElementById('btn_invite').onclick = async ()=>{
+  const msg = document.getElementById('staff_msg');
+  const email = document.getElementById('staff_email').value.trim().toLowerCase();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ msg.textContent = '⚠️ ອີເມວບໍ່ຖືກຮູບແບບ'; return; }
+  if(sbUser && email === String(sbUser.email||'').toLowerCase()){ msg.textContent = '⚠️ ນີ້ແມ່ນອີເມວຂອງທ່ານເອງ'; return; }
+  const r = await sb.from('stock_invites').upsert({shop_id: shopKey(), email});
+  if(r.error){ msg.textContent = '⚠️ ເຊີນບໍ່ສຳເລັດ: '+r.error.message; return; }
+  document.getElementById('staff_email').value = '';
+  msg.textContent = '✅ ເຊີນແລ້ວ — ບອກພະນັກງານໃຫ້ສະໝັກບັນຊີດ້ວຍອີເມວ '+email;
+  renderStaffPanel();
+};
+
+const SHOP_LS_KEY = 'stockAppShopId_v1';
+function wipeLocalForNewShop(){
+  // ກັນຂໍ້ມູນຮ້ານອື່ນປົນກັນ: ຖ້າເຄື່ອງນີ້ເຄີຍໃຊ້ກັບຮ້ານອື່ນ ໃຫ້ລ້າງຂໍ້ມູນໃນເຄື່ອງ (ຂໍ້ມູນຢູ່ຄລາວຢູ່ແລ້ວ)
+  items = []; history = []; rateHistory = [];
+  rates = {THB:0, CNY:0, USD:0, date:''};
+  BIZ = JSON.parse(JSON.stringify(BIZ_DEFAULT));
+  pushedState = {items:{}, history:{}, biz:{}, rateHistory:{}, ratesHash:''};
+  savePushedState(); saveLocal();
+}
+async function resolveShop(user){
+  sbShop = user.id;
+  try{
+    const r = await sb.rpc('stock_my_shop');
+    if(!r.error && r.data) sbShop = r.data;
+  }catch(e){}
+}
+
+async function onLoggedIn(user){
+  sbUser = user;
+  await resolveShop(user);
+  const lastShop = localStorage.getItem(SHOP_LS_KEY);
+  if(lastShop && lastShop !== shopKey()) wipeLocalForNewShop();
+  try{ localStorage.setItem(SHOP_LS_KEY, shopKey()); }catch(e){}
+  applyRole();
+  backfillIds();
+  await sbPullAndMerge();   // ດຶງຂໍ້ມູນຮ້ານລົງມາກ່ອນ (ກັນຄ່າເລີ່ມຕົ້ນຂອງເຄື່ອງໃໝ່ໄປທັບຂອງຈິງ)
+  await sbPushAll();        // ແລ້ວຈຶ່ງສົ່ງສິ່ງທີ່ສ້າງໄວ້ຕອນ offline ຂຶ້ນ
+  showApp();
+  renderStaffPanel();
+  renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable();
+  checkExportReminder();
+  updateSyncBadge();
+  startSbPolling();
+}
+
+async function checkAuthSession(){
+  try{
+    const { data } = await sb.auth.getSession();
+    if(data.session){ await onLoggedIn(data.session.user); return; }
+  }catch(e){}
+  showGate('login');
+}
+document.getElementById('btn_save').onclick = async ()=>{
+  const f = readForm();
+  if(!f.name){ setStatus('⚠️ ກະລຸນາໃສ່ຊື່ສິນຄ້າ'); return; }
+  if(!f.code) f.code = f.biz.slice(0,2).toUpperCase()+'-'+Date.now().toString().slice(-5);
+  if(editId){
+    const idx = items.findIndex(i=>i.id===editId);
+    if(idx>-1) items[idx] = {...items[idx], ...f, updatedAt: Date.now()};
+  } else {
+    items.push({id: uid(), ...f, updatedAt: Date.now()});
+  }
+  await persist();
+  clearForm();
+  renderTable();
+  setStatus('✅ ບັນທຶກແລ້ວ');
+};
+document.getElementById('btn_clear').onclick = clearForm;
+
+window.editItem = (id)=>{
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  editId = id;
+  bizSelect.value = it.biz;
+  document.getElementById('f_code').value = it.code;
+  document.getElementById('f_name').value = it.name;
+  document.getElementById('f_cat').value = it.cat;
+  document.getElementById('f_unit').value = it.unit;
+  document.getElementById('f_qty').value = fmtNumStr(it.qty);
+  document.getElementById('f_min').value = fmtNumStr(it.min);
+  currencySelect.value = it.currency || 'LAK';
+  currencySelectPrice.value = it.priceCurrency || it.currency || 'LAK';
+  document.getElementById('f_cost').value = fmtNumStr(it.cost);
+  document.getElementById('f_price').value = fmtNumStr(it.price);
+  document.getElementById('f_supplier').value = it.supplier;
+  document.getElementById('f_expiry').value = it.expiry||'';
+  document.getElementById('f_stall').value = it.stall||'';
+  document.getElementById('f_carmodel').value = it.carModel||'';
+  document.getElementById('btn_save').textContent = '💾 ອັບເດດສິນຄ້າ';
+  document.getElementById('additem-details').open = true;
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+window.deleteItem = (id)=>{
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  confirmModal(`ຢືນຢັນລົບ "${it.name}"? ຂໍ້ມູນຈະຫາຍໄປຖາວອນ.`, async ()=>{
+    items = items.filter(i=>i.id!==id);
+    selectedIds.delete(id);
+    await persist();
+    renderTable();
+    setStatus('🗑️ ລຶບແລ້ວ');
+  });
+};
+
+// quick stock in/out with modal
+window.quickMove = (id, type)=>{
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  const costCur = it.currency||'LAK';
+  const priceCur = it.priceCurrency || it.currency || 'LAK';
+  const costSym = CUR_SYMBOL[costCur];
+  const priceSym = CUR_SYMBOL[priceCur];
+  const mixedNote = costCur!==priceCur ? `<p class="hint">ຕົ້ນທຶນເປັນ ${costCur}, ຂາຍເປັນ ${priceCur} — ລະບົບຈະແປງເປັນກີບ (₭) ໃຫ້ອັດຕະໂນມັດຕອນຄິດກຳໄລ</p>` : '';
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `<div class="modal">
+    <h3 style="margin-top:0;font-size:1rem;">${type==='in'?'➕ ຮັບເຂົ້າ':'➖ ຈ່າຍອອກ (ຂາຍ)'}: ${it.name}</h3>
+    <label>ຈຳນວນ</label><input id="mv_qty" type="text" inputmode="decimal" data-thousands value="1" style="margin-bottom:8px;">
+    ${type==='out' ? `<label>ລາຄາຂາຍຕໍ່ໜ່ວຍ (${priceSym}) ${isStaff() ? '' : ' — ຕົ້ນທຶນ '+it.cost+' '+costSym}</label><input id="mv_sellprice" type="text" inputmode="decimal" data-thousands value="${fmtNumStr(it.price)}" style="margin-bottom:8px;">${isStaff() ? '' : mixedNote}
+    <p id="mv_preview" class="hint" style="font-weight:600;margin-bottom:8px;"></p>
+    <p id="mv_err" class="hint" style="color:var(--danger);font-weight:600;margin-bottom:8px;"></p>` : ''}
+    <label>ໝາຍເຫດ</label><input id="mv_note" placeholder="ເຊັ່ນ: ຮັບຈາກຜູ້ສະໜອງ, ຂາຍໜ້າຮ້ານ" style="margin-bottom:12px;">
+    <div class="toolbar"><button class="btn-primary" id="mv_ok">ຢືນຢັນ</button><button class="btn-ghost" id="mv_cancel">ຍົກເລີກ</button></div>
+  </div>`;
+  document.body.appendChild(bg);
+  document.getElementById('mv_cancel').onclick = ()=>bg.remove();
+  if(type==='out'){
+    const updatePreview = ()=>{
+      const n = parseNum(document.getElementById('mv_qty').value);
+      const sp = parseNum(document.getElementById('mv_sellprice').value);
+      const revenue = toLAK(sp, priceCur) * n;
+      const cost = toLAK(it.cost, costCur) * n;
+      const profit = revenue - cost;
+      const el = document.getElementById('mv_preview');
+      el.textContent = isStaff() ? `ລວມຍອດຂາຍ: ${fmtNumStr(revenue)} ₭` : `ລວມຍອດຂາຍ: ${fmtNumStr(revenue)} ₭   |   ກຳໄລ: ${fmtNumStr(profit)} ₭`;
+      el.style.color = isStaff() ? 'inherit' : (profit >= 0 ? 'var(--accent2)' : 'var(--danger)');
+    };
+    document.getElementById('mv_qty').addEventListener('input', ()=>{ document.getElementById('mv_err').textContent=''; updatePreview(); });
+    document.getElementById('mv_sellprice').addEventListener('input', updatePreview);
+    updatePreview();
+  }
+  document.getElementById('mv_ok').onclick = async ()=>{
+    const n = parseNum(document.getElementById('mv_qty').value);
+    const note = document.getElementById('mv_note').value.trim();
+    if(n<=0){ bg.remove(); return; }
+    if(type==='out' && n > Number(it.qty)){
+      document.getElementById('mv_err').textContent = `⚠️ ຂາຍເກີນສະຕັອກ: ເຫຼືອພຽງ ${fmtNumStr(it.qty)} ${it.unit||''} — ກະລຸນາໃສ່ຈຳນວນບໍ່ເກີນນີ້`;
+      return;
+    }
+    it.qty = type==='in' ? Number(it.qty)+n : Math.max(0, Number(it.qty)-n);
+    it.updatedAt = Date.now();
+    const entry = {id: uid(), date: new Date().toISOString(), itemName: it.name, itemId: it.id, type, qty: n, note};
+    if(type==='out'){
+      const sellPrice = parseNum(document.getElementById('mv_sellprice').value);
+      const costAtTime = Number(it.cost)||0;
+      entry.sellPrice = sellPrice;
+      entry.priceCurrency = priceCur;
+      entry.costAtTime = costAtTime;
+      entry.costCurrency = costCur;
+      entry.revenueLAK = toLAK(sellPrice, priceCur) * n;
+      entry.costLAK = toLAK(costAtTime, costCur) * n;
+      entry.profitLAK = entry.revenueLAK - entry.costLAK;
+    }
+    entry.updatedAt = Date.now();
+    if(sbUser && sbUser.email) entry.by = sbUser.email;
+    history.unshift(entry);
+    await persist();
+    renderTable();
+    setStatus(`✅ ${type==='in'?'ຮັບເຂົ້າ':'ຈ່າຍອອກ'} ${it.name} ${n} ${it.unit||''}`);
+    bg.remove();
+  };
+};
+
+function renderHistory(){
+  const tbody = document.getElementById('tbody-history');
+  document.getElementById('empty-history').classList.toggle('hidden', history.length>0);
+  tbody.innerHTML = history.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).map(h=>{
+    const isOut = h.type==='out';
+    const profitTxt = isOut ? `<span style="color:${h.profitLAK>=0?'var(--accent2)':'var(--danger)'};font-weight:600;">${h.profitLAK>=0?'+':''}${Math.round(h.profitLAK).toLocaleString()} ₭</span>` : '-';
+    return `<tr>
+    <td>${new Date(h.date).toLocaleString('lo-LA')}</td>
+    <td>${h.itemName}</td>
+    <td><span class="badge">${h.type==='in'?'➕ ຮັບເຂົ້າ':'➖ ຈ່າຍອອກ'}</span></td>
+    <td>${h.qty}</td>
+    <td>${isOut ? h.sellPrice+' '+CUR_SYMBOL[h.priceCurrency||'LAK'] : '-'}</td>
+    <td class="cost-only">${isOut ? h.costAtTime+' '+CUR_SYMBOL[h.costCurrency||'LAK'] : '-'}</td>
+    <td style="font-weight:600;">${isOut ? Math.round(h.revenueLAK||0).toLocaleString()+' ₭' : '-'}</td>
+    <td class="cost-only">${profitTxt}</td>
+    <td>${h.note||''}</td>
+    <td>${h.by||''}</td>
+    <td class="actions owner-only"><button class="btn-danger" onclick="deleteHistoryEntry('${h.id}')">🗑️ ລົບ</button></td>
+  </tr>`;}).join('');
+}
+
+window.deleteHistoryEntry = (id)=>{
+  const h = history.find(x=>x.id===id);
+  if(!h) return;
+  const it = items.find(i=>i.id===h.itemId);
+  if(it && h.type==='in' && Number(it.qty) < Number(h.qty)){
+    const msg = `⚠️ ລົບລາຍການຮັບເຂົ້ານີ້ບໍ່ໄດ້: ຮັບເຂົ້າ ${h.qty} ແຕ່ສະຕັອກເຫຼືອພຽງ ${it.qty} (ຂອງຖືກຂາຍໄປແລ້ວ). ຖ້າລົບ ຕົວເລກສະຕັອກຈະບໍ່ກົງກັບປະຫວັດ — ໃຫ້ລົບລາຍການຂາຍທີ່ກ່ຽວຂ້ອງກ່ອນ.`;
+    setStatus(msg);
+    alert(msg);
+    return;
+  }
+  const willAdjust = it ? ` ຈະປັບຈຳນວນຄົງເຫຼືອຂອງ "${it.name}" ຄືນໃຫ້ອັດຕະໂນມັດ (${h.type==='in' ? 'ຫັກ '+h.qty+' ອອກ' : 'ບວກ '+h.qty+' ກັບຄືນ'}).` : ' (ສິນຄ້ານີ້ຖືກລົບໄປແລ້ວ, ຈະບໍ່ມີການປັບຈຳນວນ)';
+  confirmModal(`ຢືນຢັນລົບລາຍການປະຫວັດນີ້ (${h.type==='in'?'ຮັບເຂົ້າ':'ຈ່າຍອອກ'} "${h.itemName}" x${h.qty})?${willAdjust}`, async ()=>{
+    if(it){
+      if(h.type==='in') it.qty = Math.max(0, Number(it.qty) - Number(h.qty));
+      else it.qty = Number(it.qty) + Number(h.qty);
+      it.updatedAt = Date.now();
+    }
+    history = history.filter(x=>x.id!==id);
+    await persist();
+    renderHistory();
+    renderTable();
+    setStatus('🗑️ ລົບລາຍການປະຫວັດແລ້ວ');
+  });
+};
+
+function renderRepBizFilter(){
+  const sel = document.getElementById('rep_biz_filter');
+  const cur = sel.value || 'all';
+  sel.innerHTML = '<option value="all">ທັງໝົດ</option>' + BIZ.map(b=>`<option value="${b.id}">${b.label}</option>`).join('');
+  sel.value = BIZ.some(b=>b.id===cur) ? cur : 'all';
+}
+
+function renderReports(){
+  renderRepBizFilter();
+  const filterId = document.getElementById('rep_biz_filter').value;
+  const filtered = filterId === 'all';
+  const repItems = filtered ? items : items.filter(it=>it.biz===filterId);
+  const repLabel = filtered ? '' : ' — ' + bizLabel(filterId);
+
+  document.getElementById('rep-title').textContent = '📦 ສະຕັອກປັດຈຸບັນ' + repLabel;
+  document.getElementById('sec-salesbybiz').classList.toggle('hidden', !filtered);
+  document.getElementById('sec-bizvalue').classList.toggle('hidden', !filtered);
+  document.getElementById('sec-stall').classList.toggle('hidden', !filtered && filterId!=='market');
+
+  const totalValue = repItems.reduce((s,it)=>s+Number(it.qty)*toLAK(it.cost,it.currency),0);
+  const lowList = repItems.filter(it=>Number(it.qty)<=Number(it.min));
+  const soonList = repItems.filter(it=>it.expiry && daysUntil(it.expiry)<=30);
+  document.getElementById('rep-total-value').textContent = totalValue.toLocaleString();
+  document.getElementById('rep-total-items').textContent = repItems.length;
+  document.getElementById('rep-low-count').textContent = lowList.length;
+  document.getElementById('rep-soon-count').textContent = soonList.length;
+
+  const repItemIds = new Set(repItems.map(it=>it.id));
+  const sales = history.filter(h=>h.type==='out' && (filtered || repItemIds.has(h.itemId)));
+  const revenueLAK = sales.reduce((s,h)=>s+(h.revenueLAK||0),0);
+  const profitLAK = sales.reduce((s,h)=>s+(h.profitLAK||0),0);
+  document.getElementById('rep-sales-count').textContent = sales.length;
+  document.getElementById('rep-revenue').textContent = Math.round(revenueLAK).toLocaleString();
+  document.getElementById('rep-profit').textContent = Math.round(profitLAK).toLocaleString();
+
+  if(filtered){
+    const byBizSales = {};
+    BIZ.forEach(b=>byBizSales[b.id]={count:0,revenue:0,profit:0});
+    sales.forEach(h=>{
+      const it = items.find(i=>i.id===h.itemId);
+      const bizId = it ? it.biz : null;
+      if(bizId && byBizSales[bizId]){
+        byBizSales[bizId].count += h.qty;
+        byBizSales[bizId].revenue += (h.revenueLAK||0);
+        byBizSales[bizId].profit += (h.profitLAK||0);
+      }
+    });
+    document.getElementById('tbody-salesreport').innerHTML = BIZ.map(b=>`<tr><td>${b.label}</td><td>${byBizSales[b.id].count}</td><td>${Math.round(byBizSales[b.id].revenue).toLocaleString()}</td><td>${Math.round(byBizSales[b.id].profit).toLocaleString()}</td></tr>`).join('');
+
+    const byBiz = {};
+    BIZ.forEach(b=>byBiz[b.id]={count:0,value:0});
+    items.forEach(it=>{ if(byBiz[it.biz]){ byBiz[it.biz].count++; byBiz[it.biz].value += Number(it.qty)*toLAK(it.cost,it.currency); } });
+    document.getElementById('tbody-bizreport').innerHTML = BIZ.map(b=>`<tr><td>${b.label}</td><td>${byBiz[b.id].count}</td><td>${Math.round(byBiz[b.id].value).toLocaleString()}</td></tr>`).join('');
+  }
+
+  document.getElementById('tbody-lowreport').innerHTML = lowList.length ? lowList.map(it=>`<tr class="low"><td>${it.name}</td><td>${bizLabel(it.biz)}</td><td>${it.qty}</td><td>${it.min}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--sub);">ບໍ່ມີສິນຄ້າໃກ້ໝົດ</td></tr>';
+  document.getElementById('tbody-expreport').innerHTML = soonList.length ? soonList.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)).map(it=>`<tr class="soon"><td>${it.name}</td><td>${bizLabel(it.biz)}</td><td>${it.expiry}</td><td>${it.qty}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--sub);">ບໍ່ມີສິນຄ້າໃກ້ໝົດອາຍຸ</td></tr>';
+
+  const marketItems = repItems.filter(it=>it.biz==='market');
+  const byStall = {};
+  marketItems.forEach(it=>{
+    const key = it.stall || 'ບໍ່ລະບຸຮ້ານ/ແຜງ';
+    if(!byStall[key]) byStall[key] = {count:0, value:0, revenue:0, profit:0};
+    byStall[key].count++;
+    byStall[key].value += Number(it.qty)*toLAK(it.cost,it.currency);
+  });
+  // ຍອດຂາຍ/ກຳໄລຕາມແຜງ: ເອົາຈາກປະຫວັດການຂາຍ ແລ້ວຈັບຄູ່ກັບແຜງຂອງສິນຄ້ານັ້ນ (ສະເພາະສິນຄ້າທຸລະກິດຕະຫລາດທີ່ຍັງຢູ່)
+  history.forEach(h=>{
+    if(h.type!=='out') return;
+    const it = items.find(i=>i.id===h.itemId);
+    if(!it || it.biz!=='market') return;
+    const key = it.stall || 'ບໍ່ລະບຸຮ້ານ/ແຜງ';
+    if(!byStall[key]) byStall[key] = {count:0, value:0, revenue:0, profit:0};
+    byStall[key].revenue += Number(h.revenueLAK)||0;
+    byStall[key].profit += Number(h.profitLAK)||0;
+  });
+  const stallKeys = Object.keys(byStall);
+  document.getElementById('tbody-stallreport').innerHTML = stallKeys.length ? stallKeys.map(k=>`<tr><td>${k}</td><td>${byStall[k].count}</td><td>${Math.round(byStall[k].value).toLocaleString()}</td><td>${Math.round(byStall[k].revenue).toLocaleString()}</td><td style="color:${byStall[k].profit>=0?'var(--accent2)':'var(--danger)'};font-weight:600;">${byStall[k].profit>=0?'+':''}${Math.round(byStall[k].profit).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--sub);">ຍັງບໍ່ມີສິນຄ້າໃນທຸລະກິດຕະຫລາດ</td></tr>';
+}
+document.getElementById('rep_biz_filter').onchange = renderReports;
+
+document.getElementById('btn_print').onclick = ()=>{
+  document.title = 'ລາຍງານສະຕັອກ-'+new Date().toISOString().slice(0,10);
+  window.print();
+};
+
+document.getElementById('search').oninput = renderTable;
+document.getElementById('sortsel').onchange = renderTable;
+document.getElementById('lowonly').onchange = renderTable;
+document.getElementById('soononly').onchange = renderTable;
+
+function fmtDT(iso){
+  const d = new Date(iso), p = n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function itemStatus(it){
+  const flags = []; let level = 0;
+  const dl = daysUntil(it.expiry);
+  if(it.expiry && dl < 0){ flags.push('ໝົດອາຍຸແລ້ວ'); level = 2; }
+  else if(it.expiry && dl <= 30){ flags.push('ໃກ້ໝົດອາຍຸ ('+dl+' ວັນ)'); level = Math.max(level,1); }
+  if(Number(it.qty) <= Number(it.min)){ flags.push('ໃກ້ໝົດສະຕັອກ'); level = 2; }
+  return {text: flags.join(' / ') || 'ປົກກະຕິ', level};
+}
+
+async function buildStyledWorkbook(){
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'ລະບົບຈັດການສະຕັອກ'; wb.created = new Date();
+  const todayStr = new Date().toISOString().slice(0,10);
+  const NAVY = 'FF1F3A5F', ZEBRA = 'FFF5F7FA';
+  const thin = {style:'thin', color:{argb:'FFD0D5DD'}};
+  const BORDER = {top:thin, left:thin, bottom:thin, right:thin};
+  const fill = argb => ({type:'pattern', pattern:'solid', fgColor:{argb}});
+
+  function styleHeader(ws, ncols){
+    const row = ws.getRow(1); row.height = 26;
+    for(let c=1;c<=ncols;c++){
+      const cell = row.getCell(c);
+      cell.fill = fill(NAVY);
+      cell.font = {bold:true, color:{argb:'FFFFFFFF'}, size:11};
+      cell.alignment = {vertical:'middle', horizontal:'center', wrapText:true};
+      cell.border = BORDER;
+    }
+  }
+  function styleBody(ws, ncols, from, to){
+    for(let r=from;r<=to;r++){
+      const row = ws.getRow(r);
+      for(let c=1;c<=ncols;c++){
+        const cell = row.getCell(c);
+        cell.border = BORDER;
+        cell.alignment = {...(cell.alignment||{}), vertical:'middle'};
+        if((r-from)%2===1) cell.fill = fill(ZEBRA);
+      }
+    }
+  }
+
+  // ---------- Stock calculations ----------
+  const stockVal = it => Number(it.qty) * toLAK(it.cost, it.currency);
+  const totalStockValue = items.reduce((s,it)=>s+stockVal(it),0);
+  const lowCount = items.filter(it=>Number(it.qty)<=Number(it.min)).length;
+  const expCount = items.filter(it=>it.expiry && daysUntil(it.expiry)<=30).length;
+  const sales = history.filter(h=>h.type==='out');
+  const revenue = sales.reduce((s,h)=>s+(h.revenueLAK||0),0);
+  const profit = sales.reduce((s,h)=>s+(h.profitLAK||0),0);
+  const missingRate = items.some(it=>{
+    const c1 = it.currency||'LAK', c2 = it.priceCurrency||it.currency||'LAK';
+    return (c1!=='LAK' && !rates[c1]) || (c2!=='LAK' && !rates[c2]);
+  });
+
+  // ---------- Sheet 1: Summary ----------
+  const s1 = wb.addWorksheet('ສະຫຼຸບ', {views:[{showGridLines:false}]});
+  s1.columns = [{width:36},{width:20},{width:24},{width:24},{width:24}];
+  let r = 1;
+  s1.mergeCells('A1:E1');
+  const t = s1.getCell('A1');
+  t.value = '📦 ລາຍງານສະຕັອກສິນຄ້າ';
+  t.font = {bold:true, size:20, color:{argb:'FFFFFFFF'}};
+  t.fill = fill(NAVY);
+  t.alignment = {vertical:'middle', horizontal:'center'};
+  s1.getRow(1).height = 42;
+  s1.mergeCells('A2:E2');
+  const d = s1.getCell('A2');
+  d.value = 'ວັນທີອອກລາຍງານ: '+todayStr;
+  d.font = {italic:true, color:{argb:'FF667085'}};
+  d.alignment = {horizontal:'center'};
+  r = 4;
+
+  function section(text){
+    s1.mergeCells(`A${r}:E${r}`);
+    const c = s1.getCell(`A${r}`);
+    c.value = text; c.font = {bold:true, size:12, color:{argb:NAVY}};
+    c.fill = fill('FFE4ECF7'); c.alignment = {vertical:'middle'};
+    s1.getRow(r).height = 22; r++;
+  }
+  function kv(label, value, fmt, color){
+    const a = s1.getCell(`A${r}`), b = s1.getCell(`B${r}`);
+    a.value = label; b.value = value;
+    if(fmt) b.numFmt = fmt;
+    a.border = BORDER; b.border = BORDER;
+    a.font = {bold:true}; b.font = {bold:true, size:12, color:{argb: color||'FF101828'}};
+    b.alignment = {horizontal:'right'};
+    r++;
+  }
+
+  section('ຕົວເລກສຳຄັນ');
+  kv('ຈຳນວນລາຍການສິນຄ້າ', items.length, '#,##0');
+  kv('ມູນຄ່າສະຕັອກລວມ (₭ — ຕາມຕົ້ນທຶນ)', Math.round(totalStockValue), '#,##0');
+  kv('ສິນຄ້າໃກ້ໝົດສະຕັອກ (ລາຍການ)', lowCount, '#,##0', lowCount? 'FFB42318':null);
+  kv('ສິນຄ້າໃກ້ໝົດອາຍຸ/ໝົດອາຍຸ (ລາຍການ)', expCount, '#,##0', expCount? 'FF93370D':null);
+  kv('ຍອດຂາຍລວມ (₭)', Math.round(revenue), '#,##0');
+  kv('ກຳໄລລວມ (₭ — ຂາຍ ລົບ ຕົ້ນທຶນ)', Math.round(profit), '#,##0', profit>=0?'FF067647':'FFB42318');
+  r++;
+
+  section('ອັດຕາແລກປ່ຽນທີ່ໃຊ້ຄິດໄລ່ (ຕໍ່ 1 ໜ່ວຍ = ຈັກກີບ)');
+  kv('1 ບາດ (THB)', rates.THB||0, '#,##0.00');
+  kv('1 ຢວນ (CNY)', rates.CNY||0, '#,##0.00');
+  kv('1 ໂດລາ (USD)', rates.USD||0, '#,##0.00');
+  kv('ອັບເດດອັດຕາລ່າສຸດ', rates.date||'ຍັງບໍ່ໄດ້ຕັ້ງ');
+  if(missingRate){
+    s1.mergeCells(`A${r}:E${r}`);
+    const w = s1.getCell(`A${r}`);
+    w.value = '⚠️ ຍັງບໍ່ໄດ້ຕັ້ງອັດຕາແລກປ່ຽນຂອງບາງສະກຸນ — ມູນຄ່າເປັນກີບອາດບໍ່ຄົບຖ້ວນ';
+    w.font = {color:{argb:'FF93370D'}, italic:true};
+    r++;
+  }
+  r++;
+
+  section('ສະຫຼຸບແຍກຕາມທຸລະກິດ');
+  const hr = s1.getRow(r);
+  ['ທຸລະກິດ','ຈຳນວນລາຍການ','ມູນຄ່າສະຕັອກ (₭)','ຍອດຂາຍ (₭)','ກຳໄລ (₭)'].forEach((h,i)=>{
+    const c = hr.getCell(i+1); c.value = h;
+    c.fill = fill(NAVY); c.font = {bold:true, color:{argb:'FFFFFFFF'}};
+    c.alignment = {horizontal:'center', vertical:'middle'}; c.border = BORDER;
+  });
+  hr.height = 24; r++;
+  const bizStart = r;
+  BIZ.forEach(b=>{
+    const its = items.filter(it=>it.biz===b.id);
+    const val = its.reduce((s,it)=>s+stockVal(it),0);
+    let rev=0, pro=0;
+    sales.forEach(h=>{ const it = items.find(i=>i.id===h.itemId); if(it && it.biz===b.id){ rev+=(h.revenueLAK||0); pro+=(h.profitLAK||0);} });
+    const row = s1.getRow(r);
+    row.getCell(1).value = b.label;
+    row.getCell(2).value = its.length;
+    row.getCell(3).value = Math.round(val);
+    row.getCell(4).value = Math.round(rev);
+    row.getCell(5).value = Math.round(pro);
+    for(let c=1;c<=5;c++){
+      const cell = row.getCell(c); cell.border = BORDER;
+      if(c>1){ cell.numFmt = '#,##0'; cell.alignment = {horizontal:'right'}; }
+      if((r-bizStart)%2===1) cell.fill = fill(ZEBRA);
+    }
+    row.getCell(5).font = {bold:true, color:{argb: pro>=0?'FF067647':'FFB42318'}};
+    r++;
+  });
+  if(BIZ.length){
+    const tr = s1.getRow(r);
+    tr.getCell(1).value = 'ລວມທັງໝົດ';
+    ['B','C','D','E'].forEach(col=>{
+      tr.getCell(col).value = {formula:`SUM(${col}${bizStart}:${col}${r-1})`};
+      tr.getCell(col).numFmt = '#,##0';
+    });
+    for(let c=1;c<=5;c++){
+      const cell = tr.getCell(c);
+      cell.font = {bold:true}; cell.fill = fill('FFE4ECF7'); cell.border = BORDER;
+      if(c>1) cell.alignment = {horizontal:'right'};
+    }
+  }
+
+  // ---------- Sheet 2: Products (header names kept compatible with Import) ----------
+  const s2 = wb.addWorksheet('ສິນຄ້າ');
+  const cols2 = [
+    ['ລະຫັດ',12],['ຊື່ສິນຄ້າ',30],['ທຸລະກິດ',20],['ໝວດໝູ່',16],['ໜ່ວຍ',9],
+    ['ຄົງເຫຼືອ',11],['ຂັ້ນຕ່ຳ',10],['ສະຖານະ',26],
+    ['ສະກຸນເງິນຕົ້ນທຶນ',14],['ຕົ້ນທຶນ',13],['ສະກຸນເງິນຂາຍ',14],['ຂາຍ',13],
+    ['ມູນຄ່າສະຕັອກ (₭)',18],['ໝົດອາຍຸ',13],['ຜູ້ສະໜອງ',18],['ຮ້ານ/ແຜງ',14],['ຮຸ່ນລົດ',20]
+  ];
+  s2.columns = cols2.map(([header,width])=>({header, width}));
+  items.forEach(it=>{
+    const st = itemStatus(it);
+    s2.addRow([
+      it.code, it.name, bizLabel(it.biz), it.cat||'', it.unit||'',
+      Number(it.qty)||0, Number(it.min)||0, st.text,
+      it.currency||'LAK', Number(it.cost)||0, it.priceCurrency||it.currency||'LAK', Number(it.price)||0,
+      Math.round(stockVal(it)), it.expiry||'', it.supplier||'', it.stall||'', it.carModel||''
+    ]);
+  });
+  styleHeader(s2, cols2.length);
+  const n2 = items.length;
+  if(n2){
+    styleBody(s2, cols2.length, 2, n2+1);
+    for(let i=0;i<n2;i++){
+      const row = s2.getRow(i+2), st = itemStatus(items[i]);
+      [6,7,13].forEach(c=>{ row.getCell(c).numFmt = '#,##0'; });
+      [10,12].forEach(c=>{ row.getCell(c).numFmt = '#,##0.00'; });
+      [5,9,11,14].forEach(c=>{ row.getCell(c).alignment = {horizontal:'center', vertical:'middle'}; });
+      const sc = row.getCell(8);
+      sc.alignment = {horizontal:'center', vertical:'middle', wrapText:true};
+      if(st.level===2){ sc.fill = fill('FFFDE2E2'); sc.font = {bold:true, color:{argb:'FFB42318'}}; }
+      else if(st.level===1){ sc.fill = fill('FFFEF0C7'); sc.font = {bold:true, color:{argb:'FF93370D'}}; }
+      else { sc.fill = fill('FFDCFAE6'); sc.font = {color:{argb:'FF067647'}}; }
+    }
+    // totals row (after a blank row so filter/import ignore it)
+    const tr = s2.getRow(n2+3);
+    tr.getCell(1).value = 'ລວມທັງໝົດ';
+    tr.getCell(13).value = {formula:`SUM(M2:M${n2+1})`};
+    tr.getCell(13).numFmt = '#,##0';
+    for(let c=1;c<=cols2.length;c++){
+      const cell = tr.getCell(c);
+      cell.font = {bold:true}; cell.fill = fill('FFE4ECF7'); cell.border = BORDER;
+    }
+    s2.autoFilter = {from:{row:1,column:1}, to:{row:1,column:cols2.length}};
+  }
+  s2.views = [{state:'frozen', xSplit:2, ySplit:1}];
+
+  // ---------- Sheet 3: History ----------
+  const s3 = wb.addWorksheet('ປະຫວັດ');
+  const cols3 = [['ວັນທີ-ເວລາ',18],['ສິນຄ້າ',28],['ປະເພດ',13],['ຈຳນວນ',10],['ລາຄາຂາຍ',13],['ສະກຸນຂາຍ',11],['ຕົ້ນທຶນ',13],['ສະກຸນຕົ້ນທຶນ',12],['ຍອດຂາຍ (₭)',16],['ກຳໄລ (₭)',16],['ໝາຍເຫດ',26]];
+  s3.columns = cols3.map(([header,width])=>({header, width}));
+  history.forEach(h=>{
+    const out = h.type==='out';
+    s3.addRow([
+      fmtDT(h.date), h.itemName, out?'➖ ຈ່າຍອອກ (ຂາຍ)':'➕ ຮັບເຂົ້າ', h.qty,
+      out?h.sellPrice:'-', out?(h.priceCurrency||'LAK'):'-',
+      out?h.costAtTime:'-', out?(h.costCurrency||'LAK'):'-',
+      out?Math.round(h.revenueLAK||0):'-', out?Math.round(h.profitLAK||0):'-', h.note||''
+    ]);
+  });
+  styleHeader(s3, cols3.length);
+  if(history.length){
+    styleBody(s3, cols3.length, 2, history.length+1);
+    history.forEach((h,i)=>{
+      const row = s3.getRow(i+2), out = h.type==='out';
+      row.getCell(3).alignment = {horizontal:'center', vertical:'middle'};
+      row.getCell(3).font = {bold:true, color:{argb: out?'FF93370D':'FF067647'}};
+      [4,5,7,9,10].forEach(c=>{ row.getCell(c).numFmt = '#,##0.00'; row.getCell(c).alignment = {horizontal:'right', vertical:'middle'}; });
+      [6,8].forEach(c=>{ row.getCell(c).alignment = {horizontal:'center', vertical:'middle'}; });
+      if(out){ row.getCell(10).font = {bold:true, color:{argb: (h.profitLAK||0)>=0?'FF067647':'FFB42318'}}; }
+    });
+    s3.autoFilter = {from:{row:1,column:1}, to:{row:1,column:cols3.length}};
+  }
+  s3.views = [{state:'frozen', ySplit:1}];
+
+  // ---------- Sheet 4: Exchange rate history ----------
+  const s4 = wb.addWorksheet('ປະຫວັດອັດຕາແລກປ່ຽນ');
+  const cols4 = [['ວັນທີ-ເວລາທີ່ປ່ຽນ',24],['1 ບາດ (THB) = ກີບ',20],['1 ຢວນ (CNY) = ກີບ',20],['1 ໂດລາ (USD) = ກີບ',20]];
+  s4.columns = cols4.map(([header,width])=>({header, width}));
+  rateHistory.forEach(x=> s4.addRow([x.date+(x.time?' '+x.time:''), x.THB||0, x.CNY||0, x.USD||0]));
+  styleHeader(s4, cols4.length);
+  if(rateHistory.length){
+    styleBody(s4, cols4.length, 2, rateHistory.length+1);
+    for(let i=0;i<rateHistory.length;i++){
+      for(let c=2;c<=4;c++){ const cell = s4.getRow(i+2).getCell(c); cell.numFmt = '#,##0.00'; cell.alignment = {horizontal:'right', vertical:'middle'}; }
+    }
+  }
+  s4.views = [{state:'frozen', ySplit:1}];
+
+  const buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+function buildPlainWorkbook(){
+  const rows = items.map(it=>({
+    'ລະຫັດ':it.code,'ຊື່ສິນຄ້າ':it.name,'ທຸລະກິດ':bizLabel(it.biz),'ໝວດໝູ່':it.cat,
+    'ໜ່ວຍ':it.unit,'ຄົງເຫຼືອ':it.qty,'ຂັ້ນຕ່ຳ':it.min,'ສະກຸນເງິນຕົ້ນທຶນ':it.currency||'LAK','ຕົ້ນທຶນ':it.cost,'ສະກຸນເງິນຂາຍ':it.priceCurrency||it.currency||'LAK','ຂາຍ':it.price,'ໝົດອາຍຸ':it.expiry,'ຜູ້ສະໜອງ':it.supplier,'ຮ້ານ/ແຜງ':it.stall,'ຮຸ່ນລົດ':it.carModel
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ສິນຄ້າ');
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  return new Blob([wbout], {type:'application/octet-stream'});
+}
+
+async function exportExcel(isAuto){
+  let blob = null;
+  if(typeof ExcelJS !== 'undefined'){
+    try{ blob = await buildStyledWorkbook(); }catch(e){ blob = null; }
+  }
+  if(!blob){
+    if(typeof XLSX === 'undefined') return false;
+    blob = buildPlainWorkbook();
+  }
+  const fname = (isAuto?'stock-auto-':'stock-')+new Date().toISOString().slice(0,10)+'.xlsx';
+  const okMsg = (isAuto?'📅 ບັນທຶກສຳຮອງອັດຕະໂນມັດປະຈຳວັນ (ໃນໂຟນເດີ/backup): ':'⬇️ ດາວໂຫຼດ Excel ແລ້ວ: ')+fname;
+  if(dirHandle){
+    const ok = await writeExcelToFolder(blob, fname);
+    if(ok){ setStatus(okMsg); return true; }
+    if(isAuto) return false;   // ຢ່າ popup ດາວໂຫຼດແທນຖ້າເປັນສຳຮອງອັດຕະໂນມັດ
+  }
+  if(isAuto && !dirHandle) return false;   // ບໍ່ມີໂຟນເດີ -- ຂ້າມສຳຮອງອັດຕະໂນມັດແບບງຽບໆ, ໃຫ້ຜູ້ໃຊ້ກົດ Export ເອງ
+  try{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=fname; a.click();
+    URL.revokeObjectURL(url);
+    setStatus(okMsg);
+    return true;
+  }catch(e){ return false; }
+}
+
+document.getElementById('btn_export').onclick = async ()=>{
+  if(typeof XLSX === 'undefined' && typeof ExcelJS === 'undefined'){
+    setStatus('❌ ບໍ່ສາມາດ Export ໄດ້ (ຍັງບໍ່ໄດ້ໂຫຼດຕົວຊ່ວຍ Excel — ຕ້ອງມີເນັດຄັ້ງທຳອິດທີ່ເປີດໄຟລ໌ນີ້, ລອງໂຫຼດໜ້າໃໝ່)');
+    return;
+  }
+  const ok = await exportExcel(false);
+  if(ok){ localStorage.setItem('stockAppLastExport', Date.now()); hideExportReminder(); }
+};
+
+function hideExportReminder(){
+  const el = document.getElementById('export-reminder');
+  if(el) el.classList.add('hidden');
+}
+function checkExportReminder(){
+  if(items.length === 0) return;
+  const last = Number(localStorage.getItem('stockAppLastExport')) || 0;
+  const days = (Date.now() - last) / 86400000;
+  const el = document.getElementById('export-reminder');
+  if(el) el.classList.toggle('hidden', last && days < 7);
+}
+
+function checkAutoBackup(){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const last = localStorage.getItem('stockAppLastBackupDate');
+  if(last !== todayStr && items.length>0){
+    exportExcel(true).then(ok=>{ if(ok) localStorage.setItem('stockAppLastBackupDate', todayStr); });
+  }
+}
+
+document.getElementById('btn_import').onclick = ()=>{
+  if(typeof XLSX === 'undefined'){ setStatus('❌ ບໍ່ສາມາດໂຫຼດຕົວອ່ານ Excel ໄດ້ (ເຄືອຂ່າຍ) — ລອງໂຫຼດໜ້າໃໝ່'); return; }
+  document.getElementById('file_import').click();
+};
+document.getElementById('file_import').onchange = (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames.includes('ສິນຄ້າ') ? 'ສິນຄ້າ' : wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet);
+      let added = 0;
+      rows.forEach(r=>{
+        const name = r['ຊື່ສິນຄ້າ']||r['name']||r['Name'];
+        if(!name) return;
+        const bizMatch = BIZ.find(b=>bizLabel(b.id)===(r['ທຸລະກິດ']));
+        items.push({
+          id: uid(),
+          updatedAt: Date.now(),
+          biz: bizMatch ? bizMatch.id : (currentTab!=='all' ? currentTab : 'water'),
+          code: r['ລະຫັດ']||r['code']||('IMP-'+Date.now().toString().slice(-5)+added),
+          name, cat: r['ໝວດໝູ່']||r['category']||'',
+          unit: r['ໜ່ວຍ']||r['unit']||'',
+          qty: Number(r['ຄົງເຫຼືອ']||r['qty']||0),
+          min: Number(r['ຂັ້ນຕ່ຳ']||r['min']||0),
+          currency: (CURRENCIES.includes(r['ສະກຸນເງິນຕົ້ນທຶນ']) ? r['ສະກຸນເງິນຕົ້ນທຶນ'] : (CURRENCIES.includes(r['ສະກຸນເງິນ']) ? r['ສະກຸນເງິນ'] : (CURRENCIES.includes(r['currency'])?r['currency']:'LAK'))),
+          priceCurrency: (CURRENCIES.includes(r['ສະກຸນເງິນຂາຍ']) ? r['ສະກຸນເງິນຂາຍ'] : (CURRENCIES.includes(r['ສະກຸນເງິນ']) ? r['ສະກຸນເງິນ'] : (CURRENCIES.includes(r['currency'])?r['currency']:'LAK'))),
+          cost: Number(r['ຕົ້ນທຶນ']||r['cost']||0),
+          price: Number(r['ຂາຍ']||r['price']||0),
+          expiry: r['ໝົດອາຍຸ']||r['expiry']||'',
+          supplier: r['ຜູ້ສະໜອງ']||r['supplier']||'',
+          stall: r['ຮ້ານ/ແຜງ']||r['stall']||'',
+          carModel: r['ຮຸ່ນລົດ']||r['carModel']||'',
+        });
+        added++;
+      });
+      await persist();
+      renderTable();
+      setStatus(`✅ Import ສຳເລັດ ${added} ລາຍການ`);
+    }catch(err){ setStatus('❌ ອ່ານໄຟລ໌ບໍ່ໄດ້ ກະລຸນາກວດຮູບແບບ Excel'); }
+    e.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+async function tryReconnectFolder(){
+  if(!FS_SUPPORTED) return;
+  try{
+    const handle = await idbGet('dirHandle');
+    if(!handle) return;
+    if(await ensurePermission(handle, 'readwrite')){
+      dirHandle = handle; dirName = handle.name;
+      await loadFromFolder();
+    } else {
+      // ຍັງບໍ່ໄດ້ອະນຸຍາດ -- ລໍຖ້າໃຫ້ຜູ້ໃຊ້ກົດ "ເຊື່ອມຕໍ່ໂຟນເດີເກົ່າ" ເອງ (ຕ້ອງມີການກົດຈາກຜູ້ໃຊ້ browser ຈຶ່ງຈະຂໍອະນຸຍາດໄດ້)
+      dirHandle = null; dirName = handle.name; window._pendingDirHandle = handle;
+    }
+  }catch(e){ /* ບໍ່ມີໂຟນເດີທີ່ເຄີຍຜູກໄວ້ -- ປົກກະຕິສຳລັບການເປີດຄັ້ງທຳອິດ */ }
+}
+
+async function reconnectFolderClick(){
+  const handle = window._pendingDirHandle;
+  if(!handle) return;
+  if(await ensurePermission(handle, 'readwrite')){
+    dirHandle = handle; dirName = handle.name; window._pendingDirHandle = null;
+    await loadFromFolder();
+    renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable();
+    setFolderStatus();
+    setStatus('✅ ເຊື່ອມຕໍ່ໂຟນເດີ "'+dirName+'" ອີກຄັ້ງແລ້ວ');
+  } else {
+    setStatus('⚠️ ບໍ່ໄດ້ຮັບອະນຸຍາດ');
+  }
+}
+
+async function init(){
+  renderTabs();
+  loadPushedState();
+  loadLocal();               // ໂຫຼດຄ່າອອບລາຍ (cache) ໄວ້ກ່ອນ -- ໃຊ້ງານໄດ້ທັນທີເຖິງເນັດຂາດຫຼັງ login
+  backfillIds();
+  await tryReconnectFolder();
+  renderBizSelect();
+  renderBizList();
+  renderTabs();
+  renderRateInputs();
+  renderTable();
+  setFolderStatus();
+  checkExportReminder();
+  if(window._pendingDirHandle){
+    setStatus('📁 ມີໂຟນເດີເກົ່າ "'+dirName+'" — ກົດ "ເຊື່ອມຕໍ່ໂຟນເດີເກົ່າ" ເພື່ອອະນຸຍາດອີກຄັ້ງ (browser ຕ້ອງໃຫ້ຢືນຢັນທຸກຄັ້ງທີ່ເປີດ)');
+  }
+  checkAutoBackup();
+
+  const cfg = loadSbConfig();
+  if(cfg && cfg.url && cfg.key && initSupabaseClient(cfg.url, cfg.key)){
+    document.getElementById('sb_url').value = cfg.url;
+    document.getElementById('sb_key').value = cfg.key;
+    await checkAuthSession();
+  } else {
+    showGate('setup');
+  }
+}
+init();
+</script>
+</div><!-- /app-root -->
+
+</body>
+</html>
