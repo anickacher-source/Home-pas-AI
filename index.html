@@ -61,7 +61,6 @@ tr.soon td{color:var(--warn);}
   #print-area{ position:absolute; left:0; top:0; width:100%; }
   button, input, select, .viewtabs, .tabs{ display:none !important; }
 }
-.role-staff .owner-only, .role-staff .cost-only{display:none !important;}
 </style>
 </head>
 <body>
@@ -86,23 +85,23 @@ tr.soon td{color:var(--warn);}
         <li>ຕັ້ງຊື່ project ແລະລະຫັດຜ່ານຖານຂໍ້ມູນ (ຈື່ໄວ້), ລໍຖ້າ ~2 ນາທີໃຫ້ສ້າງສຳເລັດ</li>
         <li>ໄປ <b>Project Settings → API</b> → copy "Project URL" ແລະ "anon public" key ມາໃສ່ຊ່ອງເທິງນີ້</li>
         <li>ໄປ <b>SQL Editor</b> → ວາງໂຄ້ດນີ້ → ກົດ Run (ຄັ້ງດຽວ):
-          <pre id="sb_sql" style="background:#1a1d23;color:#eef0f3;padding:10px;border-radius:8px;overflow-x:auto;font-size:0.68rem;white-space:pre;">create table stock_items (
+          <pre id="sb_sql" style="background:#1a1d23;color:#eef0f3;padding:10px;border-radius:8px;overflow-x:auto;font-size:0.68rem;white-space:pre;">create table if not exists stock_items (
   id text not null, user_id uuid not null references auth.users(id) on delete cascade,
   data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
   updated_at bigint not null default 0, primary key (user_id, id));
-create table stock_history (
+create table if not exists stock_history (
   id text not null, user_id uuid not null references auth.users(id) on delete cascade,
   data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
   updated_at bigint not null default 0, primary key (user_id, id));
-create table stock_biz_types (
+create table if not exists stock_biz_types (
   id text not null, user_id uuid not null references auth.users(id) on delete cascade,
   data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
   updated_at bigint not null default 0, primary key (user_id, id));
-create table stock_rate_history (
+create table if not exists stock_rate_history (
   id text not null, user_id uuid not null references auth.users(id) on delete cascade,
   data jsonb not null default '{}'::jsonb, deleted boolean not null default false,
   updated_at bigint not null default 0, primary key (user_id, id));
-create table stock_settings (
+create table if not exists stock_settings (
   user_id uuid primary key references auth.users(id) on delete cascade,
   rates jsonb not null default '{}'::jsonb, updated_at bigint not null default 0);
 
@@ -112,55 +111,18 @@ alter table stock_biz_types enable row level security;
 alter table stock_rate_history enable row level security;
 alter table stock_settings enable row level security;
 
-create policy "own rows" on stock_items for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
-create policy "own rows" on stock_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
-create policy "own rows" on stock_biz_types for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
-create policy "own rows" on stock_rate_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
-create policy "own rows" on stock_settings for all using (auth.uid()=user_id) with check (auth.uid()=user_id);</pre>
-        </li>
-        <li>(ທາງເລືອກ — ຖ້າຕ້ອງການບັນຊີພະນັກງານ) run SQL ນີ້ເພີ່ມ ອີກຄັ້ງດຽວ ຫຼັງຈາກ SQL ຂ້າງເທິງ:
-          <pre id="sb_sql_staff" style="background:#1a1d23;color:#eef0f3;padding:10px;border-radius:8px;overflow-x:auto;font-size:0.68rem;white-space:pre;">create table stock_members (
-  member_id uuid primary key references auth.users(id) on delete cascade,
-  shop_id uuid not null references auth.users(id) on delete cascade,
-  email text not null);
-create table stock_invites (
-  shop_id uuid not null references auth.users(id) on delete cascade,
-  email text not null, primary key (shop_id, email));
-alter table stock_members enable row level security;
-alter table stock_invites enable row level security;
-
-create or replace function stock_can_access(p_shop uuid) returns boolean
-language sql stable security definer set search_path = public as $$
-  select auth.uid() = p_shop or exists (
-    select 1 from stock_members where member_id = auth.uid() and shop_id = p_shop) $$;
-
 drop policy if exists "own rows" on stock_items;
+create policy "own rows" on stock_items for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
 drop policy if exists "own rows" on stock_history;
+create policy "own rows" on stock_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
 drop policy if exists "own rows" on stock_biz_types;
+create policy "own rows" on stock_biz_types for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
 drop policy if exists "own rows" on stock_rate_history;
+create policy "own rows" on stock_rate_history for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
 drop policy if exists "own rows" on stock_settings;
-create policy "shop rows" on stock_items for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
-create policy "shop rows" on stock_history for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
-create policy "shop rows" on stock_biz_types for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
-create policy "shop rows" on stock_rate_history for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
-create policy "shop rows" on stock_settings for all using (stock_can_access(user_id)) with check (stock_can_access(user_id));
+create policy "own rows" on stock_settings for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
 
-create policy "see members" on stock_members for select using (member_id = auth.uid() or shop_id = auth.uid());
-create policy "owner removes members" on stock_members for delete using (shop_id = auth.uid());
-create policy "owner manages invites" on stock_invites for all using (shop_id = auth.uid()) with check (shop_id = auth.uid());
-
-create or replace function stock_my_shop() returns uuid
-language plpgsql security definer set search_path = public as $$
-declare v_shop uuid; v_email text := lower(auth.jwt() ->> 'email');
-begin
-  select shop_id into v_shop from stock_members where member_id = auth.uid();
-  if v_shop is not null then return v_shop; end if;
-  select shop_id into v_shop from stock_invites where lower(email) = v_email limit 1;
-  if v_shop is null then return null; end if;
-  insert into stock_members (member_id, shop_id, email) values (auth.uid(), v_shop, v_email);
-  delete from stock_invites where lower(email) = v_email;
-  return v_shop;
-end $$;</pre>
+notify pgrst, 'reload schema';</pre>
         </li>
         <li>ກັບມາໜ້ານີ້ ວາງ URL+key ແລ້ວກົດ "ເຊື່ອມຕໍ່"</li>
       </ol>
@@ -175,7 +137,7 @@ end $$;</pre>
     <input id="auth_password" type="password" style="margin-bottom:12px;">
     <button class="btn-primary" id="btn_signin" style="width:100%;margin-bottom:6px;">ເຂົ້າສູ່ລະບົບ</button>
     <button class="btn-ghost" id="btn_signup" style="width:100%;">ສະໝັກບັນຊີໃໝ່ (ຮ້ານໃໝ່)</button>
-    <p class="hint" id="auth_err" style="color:var(--danger);"></p>
+    <p class="hint" id="auth_err" style="color:var(--danger);white-space:pre-line;"></p>
     <p class="hint" id="auth_msg" style="color:var(--accent2);"></p>
     <p style="text-align:center;margin:10px 0 0;"><a href="#" id="link_forgot" style="font-size:0.8rem;color:var(--accent);">ລືມລະຫັດຜ່ານ?</a></p>
     <button class="btn-ghost" id="btn_sb_reset" style="width:100%;margin-top:14px;font-size:0.75rem;">⚙️ ປ່ຽນການຕັ້ງຄ່າ Supabase</button>
@@ -212,7 +174,7 @@ end $$;</pre>
   <button class="btn-ghost" id="btn_signout">ອອກຈາກລະບົບ</button>
 </div>
 <h1>📦 ຈັດການສະຕັອກສິນຄ້າ</h1>
-<div class="card owner-only" style="margin-bottom:10px;">
+<div class="card" style="margin-bottom:10px;">
   <div class="toolbar" style="margin-bottom:0;flex-wrap:wrap;">
     <button class="btn-primary" id="btn_choose_folder">📁 ເລືອກໂຟນເດີບັນທຶກ</button>
     <button class="btn-ghost hidden" id="btn_reconnect_folder">🔗 ເຊື່ອມຕໍ່ໂຟນເດີເກົ່າ</button>
@@ -220,34 +182,20 @@ end $$;</pre>
   </div>
   <p class="hint" style="margin:6px 0 0;">ຕ້ອງໃຊ້ Chrome ຫຼື Edge ຢູ່ຄອມ. ບາງ browser ຈະຖາມອະນຸຍາດໂຟນເດີໃໝ່ທຸກຄັ້ງທີ່ເປີດໄຟລ໌ນີ້ — ເປັນເລື່ອງປົກກະຕິ, ກົດອະນຸຍາດໄດ້ເລີຍ.</p>
 </div>
-<div class="card hidden owner-only" id="export-reminder" style="background:#FEF0C7;border-color:#F5B13C;">
-  ⚠️ ບໍ່ໄດ້ກົດ Export Excel ມາດົນແລ້ວ (ຫຼືຍັງບໍ່ເຄີຍເລີຍ) — ຂໍ້ມູນຍັງຢູ່ໃນ browser ນີ້ຢ່າງດຽວ, ແນະນຳໃຫ້ກົດ "Export Excel" ເກັບໄວ້ເປັນສຳເນົາ
-</div>
-<div class="card owner-only" id="staff-card" style="margin-bottom:10px;">
-  <details>
-    <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;">👥 ພະນັກງານ (ເຊີນ/ລົບ)</summary>
-    <div style="margin-top:10px;">
-      <p class="hint" style="margin:0 0 8px;">ໃສ່ອີເມວພະນັກງານ ແລ້ວກົດເຊີນ — ພະນັກງານສະໝັກບັນຊີດ້ວຍອີເມວນັ້ນ ແລ້ວຈະເຂົ້າຮ້ານນີ້ອັດຕະໂນມັດ. ພະນັກງານຂາຍ/ຮັບເຂົ້າໄດ້ ແຕ່ບໍ່ເຫັນຕົ້ນທຶນ/ກຳໄລ/ລາຍງານ ແລະລົບ/ແກ້ໄຂບໍ່ໄດ້ (ເປັນການເຊື່ອງໃນໜ້າຈໍເທົ່ານັ້ນ).</p>
-      <div class="row">
-        <div><label>ອີເມວພະນັກງານ</label><input id="staff_email" type="email" placeholder="staff@example.com"></div>
-        <div style="display:flex;align-items:flex-end;"><button class="btn-primary" id="btn_invite" style="width:100%;">➕ ເຊີນ</button></div>
-      </div>
-      <p class="hint" id="staff_msg" style="margin:8px 0;"></p>
-      <div id="staff_list"></div>
-    </div>
-  </details>
+<div class="card hidden" id="export-reminder" style="background:#FEF0C7;border-color:#F5B13C;">
+  ⚠️ ບໍ່ໄດ້ສຳຮອງຂໍ້ມູນມາດົນແລ້ວ (ຫຼືຍັງບໍ່ເຄີຍເລີຍ) — ແນະນຳໃຫ້ກົດ "💾 Backup ເຕັມ" ເກັບໄຟລ໌ໄວ້ (ກູ້ຄືນໄດ້ທຸກຢ່າງ ລວມປະຫວັດການຂາຍ). Export Excel ໃຊ້ເບິ່ງ/ພິມ ແຕ່ກູ້ຄືນໄດ້ສະເພາະລາຍການສິນຄ້າ
 </div>
 <div class="viewtabs">
   <div class="vtab active" data-v="products">📋 ສິນຄ້າ</div>
   <div class="vtab" data-v="history">🔄 ປະຫວັດ</div>
-  <div class="vtab owner-only" data-v="reports">📊 ລາຍງານ</div>
+  <div class="vtab" data-v="reports">📊 ລາຍງານ</div>
 </div>
 
 <!-- PRODUCTS VIEW -->
 <div id="view-products">
 <div class="tabs" id="tabs"></div>
 
-<div class="card owner-only">
+<div class="card">
   <details>
     <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;">⚙️ ຈັດການປະເພດທຸລະກິດ (ເພີ່ມ/ລົບ)</summary>
     <div id="biz-list" style="margin-top:10px;"></div>
@@ -259,7 +207,7 @@ end $$;</pre>
   </details>
 </div>
 
-<div class="card owner-only">
+<div class="card">
   <div class="toolbar" style="margin-bottom:0;justify-content:space-between;">
     <strong style="font-size:0.9rem;">💱 ອັດຕາແລກປ່ຽນ (ຕໍ່ 1 ໜ່ວຍ = ຈັກກີບ)</strong>
     <span class="hint" id="rate-date-lbl">ຍັງບໍ່ໄດ້ຕັ້ງ</span>
@@ -278,7 +226,7 @@ end $$;</pre>
   </details>
 </div>
 
-<div class="card owner-only">
+<div class="card">
   <details id="additem-details" open>
     <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;">➕ ເພີ່ມສິນຄ້າ (ກົດເພື່ອເປີດ/ປິດ)</summary>
     <div style="margin-top:10px;">
@@ -320,6 +268,7 @@ end $$;</pre>
   <input id="search" placeholder="🔍 ຄົ້ນຫາຊື່/ລະຫັດ/ໝວດໝູ່/ຜູ້ສະໜອງ/ຮ້ານ/ຮຸ່ນລົດ" style="flex:2 1 200px;">
   <select id="sortsel" style="flex:1 1 140px;">
     <option value="name">ຮຽງ: ຊື່</option>
+    <option value="biz">ຮຽງ: ທຸລະກິດ</option>
     <option value="qty_asc">ຮຽງ: ຄົງເຫຼືອ ນ້ອຍ→ຫຼາຍ</option>
     <option value="qty_desc">ຮຽງ: ຄົງເຫຼືອ ຫຼາຍ→ນ້ອຍ</option>
     <option value="expiry">ຮຽງ: ໝົດອາຍຸໄວສຸດ</option>
@@ -327,12 +276,15 @@ end $$;</pre>
   <label class="check"><input type="checkbox" id="lowonly"> ສະເພາະໃກ້ໝົດ</label>
   <label class="check"><input type="checkbox" id="soononly"> ໃກ້ໝົດອາຍຸ (30ວັນ)</label>
 </div>
-<div class="toolbar owner-only">
+<div class="toolbar">
   <button class="btn-green" id="btn_export">⬇️ Export Excel</button>
   <button class="btn-ghost" id="btn_import">📥 Import Excel</button>
+  <button class="btn-primary" id="btn_backup">💾 Backup ເຕັມ</button>
+  <button class="btn-ghost" id="btn_restore">♻️ ກູ້ຄືນຈາກ Backup</button>
   <input type="file" id="file_import" accept=".xlsx,.xls,.csv" style="display:none;">
+<input type="file" id="file_restore" accept=".json,application/json" style="display:none;">
 </div>
-<div class="toolbar hidden owner-only" id="bulkbar">
+<div class="toolbar hidden" id="bulkbar">
   <span class="hint" id="bulkcount" style="font-weight:600;"></span>
   <button class="btn-danger" id="btn_bulkdelete">🗑️ ລົບລາຍການທີ່ເລືອກ</button>
   <button class="btn-ghost" id="btn_bulkcancel">ຍົກເລີກການເລືອກ</button>
@@ -341,9 +293,9 @@ end $$;</pre>
 <div class="tablewrap">
   <table>
     <thead><tr>
-      <th class="owner-only"><input type="checkbox" id="checkall"></th>
+      <th><input type="checkbox" id="checkall"></th>
       <th>ລະຫັດ</th><th>ຊື່ສິນຄ້າ</th><th>ທຸລະກິດ</th><th>ໝວດໝູ່</th><th>ໜ່ວຍ</th>
-      <th>ຄົງເຫຼືອ</th><th>ຂັ້ນຕ່ຳ</th><th class="cost-only">ຕົ້ນທຶນ</th><th>ຂາຍ</th><th class="cost-only">ມູນຄ່າ(₭)</th><th>ໝົດອາຍຸ</th><th>ຜູ້ສະໜອງ</th><th>ຮ້ານ/ແຜງ</th><th>ຮຸ່ນລົດ</th><th>ຈັດການ</th>
+      <th>ຄົງເຫຼືອ</th><th>ຂັ້ນຕ່ຳ</th><th>ຕົ້ນທຶນ</th><th>ຂາຍ</th><th>ມູນຄ່າ(₭)</th><th>ໝົດອາຍຸ</th><th>ຜູ້ສະໜອງ</th><th>ຮ້ານ/ແຜງ</th><th>ຮຸ່ນລົດ</th><th>ຈັດການ</th>
     </tr></thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -355,7 +307,7 @@ end $$;</pre>
 <div id="view-history" class="hidden">
 <div class="tablewrap">
   <table>
-    <thead><tr><th>ວັນທີ</th><th>ສິນຄ້າ</th><th>ປະເພດ</th><th>ຈຳນວນ</th><th>ລາຄາຂາຍ/ໜ່ວຍ</th><th class="cost-only">ຕົ້ນທຶນ/ໜ່ວຍ</th><th>ຍອດລວມ</th><th class="cost-only">ກຳໄລ</th><th>ໝາຍເຫດ</th><th>ຜູ້ບັນທຶກ</th><th class="owner-only">ຈັດການ</th></tr></thead>
+    <thead><tr><th>ວັນທີ</th><th>ສິນຄ້າ</th><th>ປະເພດ</th><th>ຈຳນວນ</th><th>ລາຄາຂາຍ/ໜ່ວຍ</th><th>ຕົ້ນທຶນ/ໜ່ວຍ</th><th>ຍອດລວມ</th><th>ກຳໄລ</th><th>ໝາຍເຫດ</th><th>ຈັດການ</th></tr></thead>
     <tbody id="tbody-history"></tbody>
   </table>
 </div>
@@ -444,7 +396,7 @@ function toLAK(amount, currency){
 const tabsEl = document.getElementById('tabs');
 function renderTabs(){
   const all = [{id:'all',label:'ທັງໝົດ'}, ...BIZ];
-  tabsEl.innerHTML = all.map(b=>`<div class="tab ${b.id===currentTab?'active':''}" data-id="${b.id}">${b.label}</div>`).join('');
+  tabsEl.innerHTML = all.map(b=>`<div class="tab ${b.id===currentTab?'active':''}" data-id="${esc(b.id)}">${esc(b.label)}</div>`).join('');
   [...tabsEl.children].forEach(el=>el.onclick=()=>{currentTab=el.dataset.id;renderTabs();renderTable();});
 }
 
@@ -460,10 +412,10 @@ function renderBizList(){
   el.innerHTML = BIZ.map(b=>{
     const count = items.filter(it=>it.biz===b.id).length;
     return `<div class="toolbar" style="margin-bottom:6px;justify-content:space-between;">
-      <span>${b.label} <span class="hint">(${count} ລາຍການ)</span></span>
+      <span>${esc(b.label)} <span class="hint">(${count} ລາຍການ)</span></span>
       <span>
         <button class="btn-ghost" data-editid="${b.id}">✏️ ແກ້ໄຂ</button>
-        <button class="btn-danger" data-bizid="${b.id}" data-bizlabel="${b.label.replace(/"/g,'')}" data-bizcount="${count}">🗑️ ລົບ</button>
+        <button class="btn-danger" data-bizid="${b.id}" data-bizlabel="${esc(b.label)}" data-bizcount="${count}">🗑️ ລົບ</button>
       </span>
     </div>`;
   }).join('') || '<p class="hint">ຍັງບໍ່ມີປະເພດທຸລະກິດ</p>';
@@ -493,7 +445,7 @@ function editBizLabel(id){
   bg.innerHTML = `<div class="modal">
     <h3 style="margin-top:0;font-size:1rem;">✏️ ແກ້ໄຂຊື່ທຸລະກິດ</h3>
     <label>ຊື່ທຸລະກິດ (ໃສ່ໄອຄອນ emoji ນຳໜ້າໄດ້)</label>
-    <input id="editbiz_label" value="${b.label.replace(/"/g,'&quot;')}" style="margin-bottom:12px;">
+    <input id="editbiz_label" value="${esc(b.label)}" style="margin-bottom:12px;">
     <div class="toolbar"><button class="btn-primary" id="editbiz_ok">ບັນທຶກ</button><button class="btn-ghost" id="editbiz_cancel">ຍົກເລີກ</button></div>
   </div>`;
   document.body.appendChild(bg);
@@ -526,7 +478,7 @@ document.getElementById('btn_addbiz').onclick = async ()=>{
 };
 const bizSelect = document.getElementById('f_biz');
 function renderBizSelect(){
-  bizSelect.innerHTML = BIZ.map(b=>`<option value="${b.id}">${b.label}</option>`).join('');
+  bizSelect.innerHTML = BIZ.map(b=>`<option value="${esc(b.id)}">${esc(b.label)}</option>`).join('');
 }
 renderBizSelect();
 const currencySelect = document.getElementById('f_currency');
@@ -600,6 +552,7 @@ document.querySelectorAll('.vtab').forEach(el=>{
   };
 });
 
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function bizLabel(id){return (BIZ.find(b=>b.id===id)||{}).label || id;}
 function uid(){return 'p'+Date.now()+Math.random().toString(36).slice(2,6);}
 function setStatus(msg){document.getElementById('status').textContent = msg;}
@@ -612,7 +565,7 @@ function confirmModal(message, onConfirm){
   bg.className = 'modal-bg';
   bg.innerHTML = `<div class="modal">
     <h3 style="margin-top:0;font-size:1rem;">⚠️ ຢືນຢັນ</h3>
-    <p style="font-size:0.88rem;">${message}</p>
+    <p style="font-size:0.88rem;">${esc(message)}</p>
     <div class="toolbar"><button class="btn-danger" id="cf_ok">ຢືນຢັນລົບ</button><button class="btn-ghost" id="cf_cancel">ຍົກເລີກ</button></div>
   </div>`;
   document.body.appendChild(bg);
@@ -641,6 +594,10 @@ function renderTable(){
   if(lowonly) list = list.filter(it => Number(it.qty) <= Number(it.min));
   if(soononly) list = list.filter(it => it.expiry && daysUntil(it.expiry) <= 30);
   if(sortsel==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
+  if(sortsel==='biz'){
+    const bizIdx = id => { const i = BIZ.findIndex(b=>b.id===id); return i<0 ? 999 : i; };   // ລຽງຕາມລຳດັບທຸລະກິດໃນລາຍການ
+    list.sort((a,b)=> bizIdx(a.biz)-bizIdx(b.biz) || a.name.localeCompare(b.name));
+  }
   if(sortsel==='qty_asc') list.sort((a,b)=>a.qty-b.qty);
   if(sortsel==='qty_desc') list.sort((a,b)=>b.qty-a.qty);
   if(sortsel==='expiry') list.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
@@ -649,19 +606,19 @@ function renderTable(){
     const low = Number(it.qty) <= Number(it.min);
     const soon = it.expiry && daysUntil(it.expiry) <= 30 && daysUntil(it.expiry) >= 0;
     return `<tr class="${low?'low':(soon?'soon':'')}">
-      <td class="owner-only"><input type="checkbox" class="row-check" data-id="${it.id}" ${selectedIds.has(it.id)?'checked':''}></td>
-      <td>${it.code}</td><td>${it.name}</td>
+      <td><input type="checkbox" class="row-check" data-id="${it.id}" ${selectedIds.has(it.id)?'checked':''}></td>
+      <td>${esc(it.code)}</td><td>${esc(it.name)}</td>
       <td><span class="badge">${bizLabel(it.biz)}</span></td>
-      <td>${it.cat||''}</td><td>${it.unit||''}</td>
+      <td>${esc(it.cat)}</td><td>${esc(it.unit)}</td>
       <td>${it.qty}</td><td>${it.min}</td>
-      <td class="cost-only">${it.cost} ${CUR_SYMBOL[it.currency||'LAK']}</td><td>${it.price} ${CUR_SYMBOL[it.priceCurrency||it.currency||'LAK']}</td>
-      <td class="cost-only">${Math.round(toLAK(it.cost, it.currency)*it.qty).toLocaleString()}</td>
-      <td>${it.expiry||'-'}</td><td>${it.supplier||''}</td><td>${it.stall||''}</td><td>${it.carModel||''}</td>
+      <td>${it.cost} ${CUR_SYMBOL[it.currency||'LAK']}</td><td>${it.price} ${CUR_SYMBOL[it.priceCurrency||it.currency||'LAK']}</td>
+      <td>${Math.round(toLAK(it.cost, it.currency)*it.qty).toLocaleString()}</td>
+      <td>${esc(it.expiry||'-')}</td><td>${esc(it.supplier)}</td><td>${esc(it.stall)}</td><td>${esc(it.carModel)}</td>
       <td class="actions">
         <button class="btn-green" onclick="quickMove('${it.id}','in')">➕ ຮັບ</button>
         <button class="btn-warn" onclick="quickMove('${it.id}','out')">➖ ຈ່າຍ</button>
-        <button class="btn-ghost owner-only" onclick="editItem('${it.id}')">✏️</button>
-        <button class="btn-danger owner-only" onclick="deleteItem('${it.id}')">🗑️</button>
+        <button class="btn-ghost" onclick="editItem('${it.id}')">✏️</button>
+        <button class="btn-danger" onclick="deleteItem('${it.id}')">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -862,7 +819,6 @@ async function writeExcelToFolder(blob, filename){
 // ================= SUPABASE: ການເຊື່ອມຕໍ່ຄລາວ + login =================
 const SB_CFG_KEY = 'stockAppSupabaseCfg';
 let sb = null;           // supabase client
-let sbShop = null;       // id ຂອງຮ້ານ (= id ເຈົ້າຂອງ) — ພະນັກງານໃຊ້ id ຮ້ານຂອງເຈົ້າຂອງ
 let sbUser = null;       // current logged-in user object
 let sbSyncTimer = null;
 
@@ -903,9 +859,7 @@ function savePushedState(){
   try{ localStorage.setItem(PUSHED_KEY, JSON.stringify(pushedState)); }catch(e){}
 }
 
-function shopKey(){ return sbShop || (sbUser && sbUser.id); }
-function isStaff(){ return !!(sbUser && sbShop && sbShop !== sbUser.id); }
-function applyRole(){ document.body.classList.toggle('role-staff', isStaff()); }
+function shopKey(){ return sbUser && sbUser.id; }
 
 function backfillIds(){
   // ຂໍ້ມູນເກົ່າ (ກ່ອນມີລະບົບ sync ແບບແຍກແຖວ) ອາດຂາດ id/updatedAt -- ເພີ່ມໃຫ້ຄົບເພື່ອບໍ່ໃຫ້ sync ພັງ
@@ -946,9 +900,10 @@ async function sbPushSettings(){
   const hash = JSON.stringify(rates);
   if(hash === pushedState.ratesHash) return;
   try{
-    const { error } = await sb.from('stock_settings').upsert({ user_id: shopKey(), rates, updated_at: Date.now() });
+    const at = Date.now();
+    const { error } = await sb.from('stock_settings').upsert({ user_id: shopKey(), rates, updated_at: at });
     if(error) throw error;
-    pushedState.ratesHash = hash;
+    pushedState.ratesHash = hash; pushedState.ratesAt = at;
     savePushedState();
   }catch(e){ console.warn('push settings failed', e); }
 }
@@ -996,14 +951,21 @@ function mergeTable(localArray, remoteRows){
   return Object.values(byId);
 }
 
-async function sbPullAndMerge(){
+let lastFullPull = 0, pullSince = 0;
+const PULL_OVERLAP_MS = 2*3600*1000;      // ຊ້ອນເວລາ 2 ຊົ່ວໂມງ ກັນນາຬິກາຂອງເຄື່ອງຕ່າງກັນ
+const FULL_PULL_EVERY_MS = 15*60*1000;
+async function sbPullAndMerge(opts){
   if(!sb || !sbUser) return false;
+  const startedAt = Date.now();
+  const full = !(opts && opts.incremental) || !pullSince || (startedAt - lastFullPull) > FULL_PULL_EVERY_MS;
+  const since = full ? 0 : Math.max(0, pullSince - PULL_OVERLAP_MS);
+  const sel = (table)=>{ let q = sb.from(table).select('id,data,deleted,updated_at').eq('user_id', shopKey()); if(since) q = q.gt('updated_at', since); return q; };
   try{
     const [itemsRes, historyRes, bizRes, rateRes, settingsRes] = await Promise.all([
-      sb.from(SB_TABLES.items).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
-      sb.from(SB_TABLES.history).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
-      sb.from(SB_TABLES.biz).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
-      sb.from(SB_TABLES.rateHistory).select('id,data,deleted,updated_at').eq('user_id', shopKey()),
+      sel(SB_TABLES.items),
+      sel(SB_TABLES.history),
+      sel(SB_TABLES.biz),
+      sel(SB_TABLES.rateHistory),
       sb.from('stock_settings').select('rates,updated_at').eq('user_id', shopKey()).maybeSingle(),
     ]);
     if(itemsRes.error||historyRes.error||bizRes.error||rateRes.error) throw (itemsRes.error||historyRes.error||bizRes.error||rateRes.error);
@@ -1012,10 +974,14 @@ async function sbPullAndMerge(){
     const mergedBiz = mergeTable(BIZ, bizRes.data||[]);
     if(mergedBiz.length) BIZ = mergedBiz;
     rateHistory = mergeTable(rateHistory, rateRes.data||[]);
-    if(settingsRes.data && (settingsRes.data.updated_at||0) > 0 && JSON.stringify(settingsRes.data.rates) !== JSON.stringify(rates)){
-      // ເອົາອັດຕາຈາກຄລາວ ສະເພາະຖ້າຍັງບໍ່ເຄີຍ push ອັດຕາຂອງເຄື່ອງນີ້ອອກໄປ (ຫຼີກລ່ຽງທັບຄືນ)
-      if(!pushedState.ratesHash) { rates = settingsRes.data.rates; pushedState.ratesHash = JSON.stringify(rates); }
+    const cloudAt = settingsRes.data ? (settingsRes.data.updated_at||0) : 0;
+    const localPending = JSON.stringify(rates) !== pushedState.ratesHash && !!pushedState.ratesHash;   // ມີການແກ້ອັດຕາໃນເຄື່ອງນີ້ທີ່ຍັງບໍ່ໄດ້ສົ່ງ -> ບໍ່ທັບ
+    if(settingsRes.data && cloudAt > (pushedState.ratesAt||0) && !localPending){
+      const cr = settingsRes.data.rates || {};
+      if(JSON.stringify(cr) !== JSON.stringify(rates)){ rates = cr; }
+      pushedState.ratesHash = JSON.stringify(rates); pushedState.ratesAt = cloudAt;
     }
+    pullSince = startedAt; if(full) lastFullPull = startedAt;
     savePushedState();
     saveLocal();
     return true;
@@ -1033,7 +999,7 @@ function startSbPolling(){
   stopSbPolling();
   sbPollTimer = setInterval(async ()=>{
     await sbPushAll();   // ລອງສົ່ງສິ່ງທີ່ຄ້າງ (ເຄີຍລົ້ມເຫຼວຍ້ອນເນັດຂາດ) ອີກຄັ້ງ
-    const changed = await sbPullAndMerge();
+    const changed = await sbPullAndMerge({incremental:true});
     if(changed){ renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable(); }
   }, 20000); // ທຸກ 20 ວິນາທີ ຕອນເປີດແອັບຄ້າງໄວ້: ທັງດຶງຂອງອຸປະກອນອື່ນ ແລະ ລອງສົ່ງຂອງຄ້າງຄືນ
 }
@@ -1129,6 +1095,15 @@ document.getElementById('btn_sb_reset').onclick = ()=>{
   showGate('setup');
 };
 
+function authErr(e){
+  const m = String((e && e.message) || e);
+  let hint = '';
+  if(/rate limit|sending (confirmation|recovery|email)|error sending|over_email_send_rate_limit/i.test(m))
+    hint = '\n💡 ລະບົບສົ່ງອີເມວຂອງ Supabase (ແບບຟຣີ) ຈຳກັດຈຳນວນ — ລໍຖ້າໜຶ່ງຊົ່ວໂມງແລ້ວລອງໃໝ່ ຫຼືສ້າງບັນຊີໃນ Supabase (Authentication → Users → Add user, ຕິກ Auto Confirm User)';
+  else if(/not confirmed/i.test(m))
+    hint = '\n💡 ອີເມວນີ້ຍັງບໍ່ໄດ້ຢືນຢັນ — ກວດອີເມວ (ລວມ Spam) ຫຼືສ້າງບັນຊີໃນ Supabase ແບບ Auto Confirm User';
+  return '⚠️ '+m+hint;
+}
 document.getElementById('btn_signup').onclick = async ()=>{
   const email = document.getElementById('auth_email').value.trim();
   const password = document.getElementById('auth_password').value;
@@ -1139,8 +1114,8 @@ document.getElementById('btn_signup').onclick = async ()=>{
     const { data, error } = await sb.auth.signUp({ email, password });
     if(error) throw error;
     if(data.session){ await onLoggedIn(data.session.user); }
-    else { msgEl.textContent = '✅ ສະໝັກແລ້ວ — ກວດອີເມວເພື່ອຢືນຢັນ ແລ້ວຄ່ອຍເຂົ້າສູ່ລະບົບ'; }
-  }catch(e){ errEl.textContent = '⚠️ '+(e.message||e); }
+    else { msgEl.textContent = '✅ ສະໝັກແລ້ວ — ກວດອີເມວ (ລວມ Spam) ເພື່ອຢືນຢັນ ແລ້ວຄ່ອຍເຂົ້າສູ່ລະບົບ. ຖ້າບໍ່ມີອີເມວມາພາຍໃນສອງສາມນາທີ ເບິ່ງຄຳແນະນຳດ້ານລຸ່ມ'; }
+  }catch(e){ errEl.textContent = authErr(e); }
 };
 
 document.getElementById('btn_signin').onclick = async ()=>{
@@ -1152,57 +1127,14 @@ document.getElementById('btn_signin').onclick = async ()=>{
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if(error) throw error;
     await onLoggedIn(data.user);
-  }catch(e){ errEl.textContent = '⚠️ '+(e.message||e); }
+  }catch(e){ errEl.textContent = authErr(e); }
 };
 
 document.getElementById('btn_signout').onclick = async ()=>{
   try{ await sb.auth.signOut(); }catch(e){}
-  sbUser = null; sbShop = null;
-  applyRole();
+  sbUser = null;
   stopSbPolling();
   showGate('login');
-};
-
-function escHtml(t){ return String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-async function renderStaffPanel(){
-  const card = document.getElementById('staff-card');
-  if(!card || !sb || !sbUser || isStaff()) return;
-  const msg = document.getElementById('staff_msg'), list = document.getElementById('staff_list');
-  try{
-    const [inv, mem] = await Promise.all([
-      sb.from('stock_invites').select('email').eq('shop_id', shopKey()),
-      sb.from('stock_members').select('member_id,email').eq('shop_id', shopKey()),
-    ]);
-    if(inv.error || mem.error) throw (inv.error || mem.error);
-    const rows = [];
-    (mem.data||[]).forEach(m=> rows.push(`<tr><td>${escHtml(m.email)}</td><td>✅ ເຂົ້າຮ້ານແລ້ວ</td><td><button class="btn-danger" data-member="${escHtml(m.member_id)}">ລົບສິດ</button></td></tr>`));
-    (inv.data||[]).forEach(i=> rows.push(`<tr><td>${escHtml(i.email)}</td><td>⏳ ລໍພະນັກງານສະໝັກ</td><td><button class="btn-ghost" data-invite="${escHtml(i.email)}">ຍົກເລີກ</button></td></tr>`));
-    list.innerHTML = rows.length ? `<div class="tablewrap"><table><thead><tr><th>ອີເມວ</th><th>ສະຖານະ</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<p class="hint">ຍັງບໍ່ມີພະນັກງານ</p>';
-    list.querySelectorAll('[data-member]').forEach(b=> b.onclick = async ()=>{
-      const r = await sb.from('stock_members').delete().eq('member_id', b.dataset.member).eq('shop_id', shopKey());
-      msg.textContent = r.error ? ('⚠️ '+r.error.message) : '✅ ລົບສິດແລ້ວ';
-      renderStaffPanel();
-    });
-    list.querySelectorAll('[data-invite]').forEach(b=> b.onclick = async ()=>{
-      const r = await sb.from('stock_invites').delete().eq('shop_id', shopKey()).eq('email', b.dataset.invite);
-      msg.textContent = r.error ? ('⚠️ '+r.error.message) : '✅ ຍົກເລີກຄຳເຊີນແລ້ວ';
-      renderStaffPanel();
-    });
-  }catch(e){
-    list.innerHTML = '';
-    msg.textContent = '⚠️ ຍັງໃຊ້ບັນຊີພະນັກງານບໍ່ໄດ້ — ຕ້ອງ run SQL ສ່ວນເພີ່ມ (ເບິ່ງໃນ ⚙️ ຕັ້ງຄ່າ Supabase) ກ່ອນ: '+(e.message||e);
-  }
-}
-document.getElementById('btn_invite').onclick = async ()=>{
-  const msg = document.getElementById('staff_msg');
-  const email = document.getElementById('staff_email').value.trim().toLowerCase();
-  if(!/^\S+@\S+\.\S+$/.test(email)){ msg.textContent = '⚠️ ອີເມວບໍ່ຖືກຮູບແບບ'; return; }
-  if(sbUser && email === String(sbUser.email||'').toLowerCase()){ msg.textContent = '⚠️ ນີ້ແມ່ນອີເມວຂອງທ່ານເອງ'; return; }
-  const r = await sb.from('stock_invites').upsert({shop_id: shopKey(), email});
-  if(r.error){ msg.textContent = '⚠️ ເຊີນບໍ່ສຳເລັດ: '+r.error.message; return; }
-  document.getElementById('staff_email').value = '';
-  msg.textContent = '✅ ເຊີນແລ້ວ — ບອກພະນັກງານໃຫ້ສະໝັກບັນຊີດ້ວຍອີເມວ '+email;
-  renderStaffPanel();
 };
 
 const SHOP_LS_KEY = 'stockAppShopId_v1';
@@ -1214,26 +1146,15 @@ function wipeLocalForNewShop(){
   pushedState = {items:{}, history:{}, biz:{}, rateHistory:{}, ratesHash:''};
   savePushedState(); saveLocal();
 }
-async function resolveShop(user){
-  sbShop = user.id;
-  try{
-    const r = await sb.rpc('stock_my_shop');
-    if(!r.error && r.data) sbShop = r.data;
-  }catch(e){}
-}
-
 async function onLoggedIn(user){
   sbUser = user;
-  await resolveShop(user);
   const lastShop = localStorage.getItem(SHOP_LS_KEY);
   if(lastShop && lastShop !== shopKey()) wipeLocalForNewShop();
   try{ localStorage.setItem(SHOP_LS_KEY, shopKey()); }catch(e){}
-  applyRole();
   backfillIds();
   await sbPullAndMerge();   // ດຶງຂໍ້ມູນຮ້ານລົງມາກ່ອນ (ກັນຄ່າເລີ່ມຕົ້ນຂອງເຄື່ອງໃໝ່ໄປທັບຂອງຈິງ)
   await sbPushAll();        // ແລ້ວຈຶ່ງສົ່ງສິ່ງທີ່ສ້າງໄວ້ຕອນ offline ຂຶ້ນ
   showApp();
-  renderStaffPanel();
   renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable();
   checkExportReminder();
   updateSyncBadge();
@@ -1311,9 +1232,9 @@ window.quickMove = (id, type)=>{
   const bg = document.createElement('div');
   bg.className = 'modal-bg';
   bg.innerHTML = `<div class="modal">
-    <h3 style="margin-top:0;font-size:1rem;">${type==='in'?'➕ ຮັບເຂົ້າ':'➖ ຈ່າຍອອກ (ຂາຍ)'}: ${it.name}</h3>
+    <h3 style="margin-top:0;font-size:1rem;">${type==='in'?'➕ ຮັບເຂົ້າ':'➖ ຈ່າຍອອກ (ຂາຍ)'}: ${esc(it.name)}</h3>
     <label>ຈຳນວນ</label><input id="mv_qty" type="text" inputmode="decimal" data-thousands value="1" style="margin-bottom:8px;">
-    ${type==='out' ? `<label>ລາຄາຂາຍຕໍ່ໜ່ວຍ (${priceSym}) ${isStaff() ? '' : ' — ຕົ້ນທຶນ '+it.cost+' '+costSym}</label><input id="mv_sellprice" type="text" inputmode="decimal" data-thousands value="${fmtNumStr(it.price)}" style="margin-bottom:8px;">${isStaff() ? '' : mixedNote}
+    ${type==='out' ? `<label>ລາຄາຂາຍຕໍ່ໜ່ວຍ (${priceSym}) — ຕົ້ນທຶນ ${it.cost} ${costSym}</label><input id="mv_sellprice" type="text" inputmode="decimal" data-thousands value="${fmtNumStr(it.price)}" style="margin-bottom:8px;">${mixedNote}
     <p id="mv_preview" class="hint" style="font-weight:600;margin-bottom:8px;"></p>
     <p id="mv_err" class="hint" style="color:var(--danger);font-weight:600;margin-bottom:8px;"></p>` : ''}
     <label>ໝາຍເຫດ</label><input id="mv_note" placeholder="ເຊັ່ນ: ຮັບຈາກຜູ້ສະໜອງ, ຂາຍໜ້າຮ້ານ" style="margin-bottom:12px;">
@@ -1329,8 +1250,10 @@ window.quickMove = (id, type)=>{
       const cost = toLAK(it.cost, costCur) * n;
       const profit = revenue - cost;
       const el = document.getElementById('mv_preview');
-      el.textContent = isStaff() ? `ລວມຍອດຂາຍ: ${fmtNumStr(revenue)} ₭` : `ລວມຍອດຂາຍ: ${fmtNumStr(revenue)} ₭   |   ກຳໄລ: ${fmtNumStr(profit)} ₭`;
-      el.style.color = isStaff() ? 'inherit' : (profit >= 0 ? 'var(--accent2)' : 'var(--danger)');
+      const missing = [...new Set([costCur, priceCur])].filter(c=>c && c!=='LAK' && !(Number(rates[c])>0));
+      if(missing.length){ el.textContent = '⚠️ ຍັງບໍ່ໄດ້ຕັ້ງອັດຕາແລກປ່ຽນ '+missing.join(', ')+' — ຄິດກຳໄລບໍ່ໄດ້'; el.style.color = 'var(--danger)'; return; }
+      el.textContent = `ລວມຍອດຂາຍ: ${fmtNumStr(revenue)} ₭   |   ກຳໄລ: ${fmtNumStr(profit)} ₭`;
+      el.style.color = profit >= 0 ? 'var(--accent2)' : 'var(--danger)';
     };
     document.getElementById('mv_qty').addEventListener('input', ()=>{ document.getElementById('mv_err').textContent=''; updatePreview(); });
     document.getElementById('mv_sellprice').addEventListener('input', updatePreview);
@@ -1340,6 +1263,13 @@ window.quickMove = (id, type)=>{
     const n = parseNum(document.getElementById('mv_qty').value);
     const note = document.getElementById('mv_note').value.trim();
     if(n<=0){ bg.remove(); return; }
+    if(type==='out'){
+      const need = [...new Set([costCur, priceCur])].filter(c=>c && c!=='LAK' && !(Number(rates[c])>0));
+      if(need.length){
+        document.getElementById('mv_err').textContent = `⚠️ ຍັງບໍ່ໄດ້ຕັ້ງອັດຕາແລກປ່ຽນ ${need.join(', ')} — ກຳໄລຈະຄິດຜິດ. ປິດໜ້ານີ້ ແລ້ວຕັ້ງອັດຕາໃນກ່ອງ "ອັດຕາແລກປ່ຽນ" ກ່ອນ`;
+        return;
+      }
+    }
     if(type==='out' && n > Number(it.qty)){
       document.getElementById('mv_err').textContent = `⚠️ ຂາຍເກີນສະຕັອກ: ເຫຼືອພຽງ ${fmtNumStr(it.qty)} ${it.unit||''} — ກະລຸນາໃສ່ຈຳນວນບໍ່ເກີນນີ້`;
       return;
@@ -1359,7 +1289,6 @@ window.quickMove = (id, type)=>{
       entry.profitLAK = entry.revenueLAK - entry.costLAK;
     }
     entry.updatedAt = Date.now();
-    if(sbUser && sbUser.email) entry.by = sbUser.email;
     history.unshift(entry);
     await persist();
     renderTable();
@@ -1376,16 +1305,15 @@ function renderHistory(){
     const profitTxt = isOut ? `<span style="color:${h.profitLAK>=0?'var(--accent2)':'var(--danger)'};font-weight:600;">${h.profitLAK>=0?'+':''}${Math.round(h.profitLAK).toLocaleString()} ₭</span>` : '-';
     return `<tr>
     <td>${new Date(h.date).toLocaleString('lo-LA')}</td>
-    <td>${h.itemName}</td>
+    <td>${esc(h.itemName)}</td>
     <td><span class="badge">${h.type==='in'?'➕ ຮັບເຂົ້າ':'➖ ຈ່າຍອອກ'}</span></td>
     <td>${h.qty}</td>
     <td>${isOut ? h.sellPrice+' '+CUR_SYMBOL[h.priceCurrency||'LAK'] : '-'}</td>
-    <td class="cost-only">${isOut ? h.costAtTime+' '+CUR_SYMBOL[h.costCurrency||'LAK'] : '-'}</td>
+    <td>${isOut ? h.costAtTime+' '+CUR_SYMBOL[h.costCurrency||'LAK'] : '-'}</td>
     <td style="font-weight:600;">${isOut ? Math.round(h.revenueLAK||0).toLocaleString()+' ₭' : '-'}</td>
-    <td class="cost-only">${profitTxt}</td>
-    <td>${h.note||''}</td>
-    <td>${h.by||''}</td>
-    <td class="actions owner-only"><button class="btn-danger" onclick="deleteHistoryEntry('${h.id}')">🗑️ ລົບ</button></td>
+    <td>${profitTxt}</td>
+    <td>${esc(h.note)}</td>
+    <td class="actions"><button class="btn-danger" onclick="deleteHistoryEntry('${h.id}')">🗑️ ລົບ</button></td>
   </tr>`;}).join('');
 }
 
@@ -1417,7 +1345,7 @@ window.deleteHistoryEntry = (id)=>{
 function renderRepBizFilter(){
   const sel = document.getElementById('rep_biz_filter');
   const cur = sel.value || 'all';
-  sel.innerHTML = '<option value="all">ທັງໝົດ</option>' + BIZ.map(b=>`<option value="${b.id}">${b.label}</option>`).join('');
+  sel.innerHTML = '<option value="all">ທັງໝົດ</option>' + BIZ.map(b=>`<option value="${esc(b.id)}">${esc(b.label)}</option>`).join('');
   sel.value = BIZ.some(b=>b.id===cur) ? cur : 'all';
 }
 
@@ -1461,16 +1389,16 @@ function renderReports(){
         byBizSales[bizId].profit += (h.profitLAK||0);
       }
     });
-    document.getElementById('tbody-salesreport').innerHTML = BIZ.map(b=>`<tr><td>${b.label}</td><td>${byBizSales[b.id].count}</td><td>${Math.round(byBizSales[b.id].revenue).toLocaleString()}</td><td>${Math.round(byBizSales[b.id].profit).toLocaleString()}</td></tr>`).join('');
+    document.getElementById('tbody-salesreport').innerHTML = BIZ.map(b=>`<tr><td>${esc(b.label)}</td><td>${byBizSales[b.id].count}</td><td>${Math.round(byBizSales[b.id].revenue).toLocaleString()}</td><td>${Math.round(byBizSales[b.id].profit).toLocaleString()}</td></tr>`).join('');
 
     const byBiz = {};
     BIZ.forEach(b=>byBiz[b.id]={count:0,value:0});
     items.forEach(it=>{ if(byBiz[it.biz]){ byBiz[it.biz].count++; byBiz[it.biz].value += Number(it.qty)*toLAK(it.cost,it.currency); } });
-    document.getElementById('tbody-bizreport').innerHTML = BIZ.map(b=>`<tr><td>${b.label}</td><td>${byBiz[b.id].count}</td><td>${Math.round(byBiz[b.id].value).toLocaleString()}</td></tr>`).join('');
+    document.getElementById('tbody-bizreport').innerHTML = BIZ.map(b=>`<tr><td>${esc(b.label)}</td><td>${byBiz[b.id].count}</td><td>${Math.round(byBiz[b.id].value).toLocaleString()}</td></tr>`).join('');
   }
 
-  document.getElementById('tbody-lowreport').innerHTML = lowList.length ? lowList.map(it=>`<tr class="low"><td>${it.name}</td><td>${bizLabel(it.biz)}</td><td>${it.qty}</td><td>${it.min}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--sub);">ບໍ່ມີສິນຄ້າໃກ້ໝົດ</td></tr>';
-  document.getElementById('tbody-expreport').innerHTML = soonList.length ? soonList.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)).map(it=>`<tr class="soon"><td>${it.name}</td><td>${bizLabel(it.biz)}</td><td>${it.expiry}</td><td>${it.qty}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--sub);">ບໍ່ມີສິນຄ້າໃກ້ໝົດອາຍຸ</td></tr>';
+  document.getElementById('tbody-lowreport').innerHTML = lowList.length ? lowList.map(it=>`<tr class="low"><td>${esc(it.name)}</td><td>${esc(bizLabel(it.biz))}</td><td>${it.qty}</td><td>${it.min}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--sub);">ບໍ່ມີສິນຄ້າໃກ້ໝົດ</td></tr>';
+  document.getElementById('tbody-expreport').innerHTML = soonList.length ? soonList.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)).map(it=>`<tr class="soon"><td>${esc(it.name)}</td><td>${esc(bizLabel(it.biz))}</td><td>${it.expiry}</td><td>${it.qty}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--sub);">ບໍ່ມີສິນຄ້າໃກ້ໝົດອາຍຸ</td></tr>';
 
   const marketItems = repItems.filter(it=>it.biz==='market');
   const byStall = {};
@@ -1491,7 +1419,7 @@ function renderReports(){
     byStall[key].profit += Number(h.profitLAK)||0;
   });
   const stallKeys = Object.keys(byStall);
-  document.getElementById('tbody-stallreport').innerHTML = stallKeys.length ? stallKeys.map(k=>`<tr><td>${k}</td><td>${byStall[k].count}</td><td>${Math.round(byStall[k].value).toLocaleString()}</td><td>${Math.round(byStall[k].revenue).toLocaleString()}</td><td style="color:${byStall[k].profit>=0?'var(--accent2)':'var(--danger)'};font-weight:600;">${byStall[k].profit>=0?'+':''}${Math.round(byStall[k].profit).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--sub);">ຍັງບໍ່ມີສິນຄ້າໃນທຸລະກິດຕະຫລາດ</td></tr>';
+  document.getElementById('tbody-stallreport').innerHTML = stallKeys.length ? stallKeys.map(k=>`<tr><td>${esc(k)}</td><td>${byStall[k].count}</td><td>${Math.round(byStall[k].value).toLocaleString()}</td><td>${Math.round(byStall[k].revenue).toLocaleString()}</td><td style="color:${byStall[k].profit>=0?'var(--accent2)':'var(--danger)'};font-weight:600;">${byStall[k].profit>=0?'+':''}${Math.round(byStall[k].profit).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--sub);">ຍັງບໍ່ມີສິນຄ້າໃນທຸລະກິດຕະຫລາດ</td></tr>';
 }
 document.getElementById('rep_biz_filter').onchange = renderReports;
 
@@ -1821,6 +1749,52 @@ function checkAutoBackup(){
   }
 }
 
+document.getElementById('btn_backup').onclick = ()=>{
+  const data = {app:'stock-cloud', version:1, savedAt:new Date().toISOString(), items, history, biz:BIZ, rateHistory, rates};
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const a = document.createElement('a');
+  const name = 'stock-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+  localStorage.setItem('stockAppLastExport', Date.now()); hideExportReminder();
+  setStatus('💾 ດາວໂຫຼດ Backup ແລ້ວ: '+name+' ('+items.length+' ສິນຄ້າ, '+history.length+' ລາຍການປະຫວັດ) — ເກັບໄວ້ບ່ອນປອດໄພ (Google Drive/ອີເມວ)');
+};
+function mergeBackupList(local, incoming){
+  const byId = new Map(local.map(x=>[x.id, x])); let added = 0, updated = 0;
+  (incoming||[]).forEach(r=>{
+    if(!r || !r.id) return;
+    const cur = byId.get(r.id);
+    if(!cur){ byId.set(r.id, {...r, updatedAt: Date.now()}); added++; }          // ທີ່ຂາດໄປ: ເອົາກັບຄືນ (ຊະນະ tombstone ເກົ່າ)
+    else if((r.updatedAt||0) > (cur.updatedAt||0)){ byId.set(r.id, r); updated++; } // ມີແລ້ວ: ເອົາອັນທີ່ໃໝ່ກວ່າ
+  });
+  return {list:[...byId.values()], added, updated};
+}
+document.getElementById('btn_restore').onclick = ()=> document.getElementById('file_restore').click();
+document.getElementById('file_restore').onchange = (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    try{
+      const d = JSON.parse(ev.target.result);
+      if(!d || d.app!=='stock-cloud' || !Array.isArray(d.items) || !Array.isArray(d.history)) throw new Error('bad file');
+      const mi = mergeBackupList(items, d.items), mh = mergeBackupList(history, d.history);
+      const mb = mergeBackupList(BIZ, d.biz), mr = mergeBackupList(rateHistory, d.rateHistory);
+      const msg = 'ກູ້ຄືນຈາກ Backup ວັນທີ '+String(d.savedAt||'').slice(0,10)+':\n• ສິນຄ້າທີ່ຂາດ: ເພີ່ມ '+mi.added+', ອັບເດດ '+mi.updated+'\n• ປະຫວັດທີ່ຂາດ: ເພີ່ມ '+mh.added+'\n\nຂໍ້ມູນທີ່ມີຢູ່ແລ້ວຈະບໍ່ຖືກລົບ. ດຳເນີນການບໍ?';
+      if(!confirm(msg)){ e.target.value = ''; return; }
+      items = mi.list; history = mh.list; rateHistory = mr.list;
+      if(mb.list.length) BIZ = mb.list;
+      const hasRates = ['THB','CNY','USD'].some(c=>Number(rates[c])>0);
+      if(!hasRates && d.rates) rates = {...rates, ...d.rates};
+      backfillIds();
+      await persist();
+      renderBizSelect(); renderBizList(); renderTabs(); renderRateInputs(); renderTable(); renderHistory();
+      setStatus('♻️ ກູ້ຄືນສຳເລັດ: ສິນຄ້າ +'+mi.added+', ປະຫວັດ +'+mh.added);
+    }catch(err){ setStatus('❌ ໄຟລ໌ Backup ບໍ່ຖືກຕ້ອງ (ຕ້ອງເປັນໄຟລ໌ .json ທີ່ໄດ້ຈາກປຸ່ມ Backup ເຕັມ)'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+};
 document.getElementById('btn_import').onclick = ()=>{
   if(typeof XLSX === 'undefined'){ setStatus('❌ ບໍ່ສາມາດໂຫຼດຕົວອ່ານ Excel ໄດ້ (ເຄືອຂ່າຍ) — ລອງໂຫຼດໜ້າໃໝ່'); return; }
   document.getElementById('file_import').click();
